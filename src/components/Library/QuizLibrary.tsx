@@ -11,6 +11,7 @@ interface QuizLibraryProps {
   onCreateNewQuiz: () => void;
   onJoinAsPlayer: (pin?: string) => void;
   onRefreshList: () => void;
+  onBackToHome?: () => void;
 }
 
 export function QuizLibrary({
@@ -20,6 +21,7 @@ export function QuizLibrary({
   onCreateNewQuiz,
   onJoinAsPlayer,
   onRefreshList,
+  onBackToHome,
 }: QuizLibraryProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('Все');
@@ -93,18 +95,27 @@ export function QuizLibrary({
     <div id="quiz-library-view" className="min-h-screen bg-slate-950 text-slate-100 flex flex-col select-none">
       {/* Top Navbar */}
       <header className="h-16 border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-md px-6 flex items-center justify-between sticky top-0 z-30">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-slate-100 text-slate-950 flex items-center justify-center font-black text-lg shadow-md">
+        <div
+          onClick={() => {
+            if (onBackToHome) {
+              sounds.playClick();
+              onBackToHome();
+            }
+          }}
+          className="flex items-center gap-3 cursor-pointer group"
+          title="Вернуться на главную страницу"
+        >
+          <div className="w-9 h-9 rounded-xl bg-slate-100 group-hover:bg-white text-slate-950 flex items-center justify-center font-black text-lg shadow-md transition-transform group-hover:scale-105">
             QC
           </div>
           <div>
-            <div className="text-sm font-bold text-white tracking-tight flex items-center gap-2">
+            <div className="text-sm font-bold text-white group-hover:text-amber-300 tracking-tight flex items-center gap-2 transition-colors">
               <span>QuizCraft</span>
               <span className="text-[10px] font-mono uppercase bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded border border-slate-700/50">
-                v1.0
+                Библиотека
               </span>
             </div>
-            <p className="text-[11px] text-slate-500">Конструктор и Квиз-Арена</p>
+            <p className="text-[11px] text-slate-500">← На главную</p>
           </div>
         </div>
 
