@@ -152,6 +152,43 @@ export function HostQuestionReveal({
           </div>
         )}
 
+        {/* Number Answer Reveal */}
+        {question.type === 'number' && (
+          <div className="bg-slate-900 border-2 border-emerald-500/60 rounded-2xl p-6 text-center shadow-xl">
+            <span className="text-xs uppercase tracking-wider text-slate-400 font-bold block mb-2">
+              Правильное числовое значение:
+            </span>
+            <div className="text-3xl md:text-4xl font-mono font-black text-emerald-400">
+              {question.correctNumberAnswer}
+              {question.numberTolerance && question.numberTolerance > 0 && (
+                <span className="text-sm font-sans font-normal text-slate-400 ml-2">
+                  (допустимо ±{question.numberTolerance})
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Dynamic difficulty alert */}
+        {totalPlayers > 0 && correctRatePercent <= 35 && question.type !== 'poll' && (
+          <div className="bg-red-950/40 border border-red-800/80 rounded-2xl p-3.5 flex items-center gap-3 text-xs text-red-300">
+            <span className="text-lg">⚠️</span>
+            <div>
+              <strong className="text-white block">Сложный вопрос для аудитории!</strong>
+              Только {correctRatePercent}% участников смогли дать верный ответ.
+            </div>
+          </div>
+        )}
+        {totalPlayers > 0 && correctRatePercent >= 85 && question.type !== 'poll' && (
+          <div className="bg-emerald-950/40 border border-emerald-800/80 rounded-2xl p-3.5 flex items-center gap-3 text-xs text-emerald-300">
+            <span className="text-lg">🔥</span>
+            <div>
+              <strong className="text-white block">Отличный результат!</strong>
+              {correctRatePercent}% игроков справились с этим заданием.
+            </div>
+          </div>
+        )}
+
         {/* Order Answer Reveal */}
         {question.type === 'order' && (
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-2">
