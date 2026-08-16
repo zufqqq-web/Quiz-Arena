@@ -1,8 +1,11 @@
 import { useEffect } from 'react';
+import { motion } from 'motion/react';
 import confetti from 'canvas-confetti';
 import { Player, Quiz } from '../../types';
 import { Trophy, CheckCircle2, XCircle, Award, Flame, ArrowLeft, RotateCcw } from 'lucide-react';
 import { sounds } from '../../utils/sound';
+import { AnimatedCounter } from '../Common/AnimatedCounter';
+import { staggerContainer, staggerItem, buttonHoverTap } from '../../utils/motionVariants';
 
 interface PlayerPodiumResultProps {
   player: Player;
@@ -66,21 +69,37 @@ export function PlayerPodiumResult({
         </div>
         <button
           onClick={onExit}
-          className="text-xs font-medium text-slate-400 hover:text-white bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-xl cursor-pointer"
+          className="text-xs font-medium text-slate-400 hover:text-white bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-xl cursor-pointer transition"
         >
           В меню
         </button>
       </div>
 
-      {/* Main Certificate Card */}
-      <div className="my-auto max-w-md w-full mx-auto space-y-6 z-10">
-        <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 text-center space-y-5 shadow-2xl backdrop-blur-xl">
+      {/* Main Certificate Card with Stagger */}
+      <motion.div
+        variants={staggerContainer(0.08, 0.1)}
+        initial="hidden"
+        animate="show"
+        className="my-auto max-w-md w-full mx-auto space-y-6 z-10"
+      >
+        <motion.div
+          variants={staggerItem}
+          className="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 text-center space-y-5 shadow-2xl backdrop-blur-xl"
+        >
           {/* Avatar & Place Ring */}
           <div className="relative inline-block mx-auto">
-            <div className="w-24 h-24 rounded-3xl bg-slate-800 border-2 border-slate-700 flex items-center justify-center text-5xl shadow-xl">
+            <motion.div
+              initial={{ scale: 0.7 }}
+              animate={{ scale: 1 }}
+              transition={{ type: 'spring', stiffness: 350, damping: 20 }}
+              className="w-24 h-24 rounded-3xl bg-slate-800 border-2 border-slate-700 flex items-center justify-center text-5xl shadow-xl"
+            >
               {player.avatarEmoji}
-            </div>
-            <div
+            </motion.div>
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 0.3, type: 'spring', stiffness: 400 }}
               className={`absolute -bottom-2 -right-2 w-9 h-9 rounded-full font-mono font-black text-sm flex items-center justify-center border-2 border-slate-900 shadow-md ${
                 rank === 1
                   ? 'bg-amber-400 text-slate-950'
@@ -92,7 +111,7 @@ export function PlayerPodiumResult({
               }`}
             >
               #{rank}
-            </div>
+            </motion.div>
           </div>
 
           <div>
@@ -113,7 +132,7 @@ export function PlayerPodiumResult({
                 Набранные баллы
               </div>
               <div className="text-xl font-black font-mono text-white mt-1">
-                {player.score.toLocaleString('ru-RU')}
+                <AnimatedCounter value={player.score} duration={800} />
               </div>
             </div>
 
@@ -142,10 +161,13 @@ export function PlayerPodiumResult({
               <div className="text-[11px] text-slate-400 mt-0.5">{badgeDesc}</div>
             </div>
           </div>
-        </div>
+        </motion.div>
 
         {/* Answers Breakdown Accordion List */}
-        <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-5 space-y-3">
+        <motion.div
+          variants={staggerItem}
+          className="bg-slate-900/80 border border-slate-800 rounded-3xl p-5 space-y-3"
+        >
           <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
             Разбор ваших ответов
           </h3>
@@ -176,15 +198,18 @@ export function PlayerPodiumResult({
               );
             })}
           </div>
-        </div>
+        </motion.div>
 
-        <button
+        <motion.button
+          variants={buttonHoverTap}
+          whileHover="hover"
+          whileTap="tap"
           onClick={onExit}
           className="w-full py-3.5 rounded-2xl bg-slate-100 hover:bg-white text-slate-950 font-bold text-sm transition shadow-xl cursor-pointer"
         >
           Завершить и выйти в меню
-        </button>
-      </div>
+        </motion.button>
+      </motion.div>
 
       <div className="h-4" />
     </div>

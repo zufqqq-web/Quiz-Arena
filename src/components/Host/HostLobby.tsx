@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { Player, Quiz } from '../../types';
 import { Play, Users, Bot, Volume2, VolumeX, Copy, Check, QrCode, ArrowLeft, Trash2 } from 'lucide-react';
 import { sounds } from '../../utils/sound';
 import { generateBotPlayers } from '../../utils/botSimulator';
+import { buttonHoverTap } from '../../utils/motionVariants';
 
 interface HostLobbyProps {
   roomCode: string;
@@ -151,8 +153,11 @@ export function HostLobby({
             </button>
           </div>
 
-          <button
+          <motion.button
             id="btn-host-start-game"
+            variants={buttonHoverTap}
+            whileHover={playerList.length > 0 ? "hover" : undefined}
+            whileTap={playerList.length > 0 ? "tap" : undefined}
             disabled={playerList.length === 0}
             onClick={() => {
               sounds.stopLobbyMusic();
@@ -163,10 +168,10 @@ export function HostLobby({
           >
             <Play className="w-5 h-5 fill-slate-950" />
             <span>Начать игру ({playerList.length})</span>
-          </button>
+          </motion.button>
         </div>
 
-        {/* Players Grid */}
+        {/* Players Grid with AnimatePresence */}
         <div className="min-h-[90px] max-h-48 overflow-y-auto">
           {playerList.length === 0 ? (
             <div className="h-24 flex flex-col items-center justify-center text-xs text-slate-500 border border-dashed border-slate-800 rounded-2xl">
@@ -174,27 +179,34 @@ export function HostLobby({
             </div>
           ) : (
             <div className="flex flex-wrap gap-2.5">
-              {playerList.map((p) => (
-                <div
-                  key={p.id}
-                  className="group bg-slate-950 border border-slate-800 hover:border-slate-600 rounded-2xl px-3.5 py-2 flex items-center gap-2 shadow-sm transition"
-                >
-                  <span className="text-xl">{p.avatarEmoji}</span>
-                  <span className="text-xs font-semibold text-slate-200">{p.nickname}</span>
-                  {p.isBot && (
-                    <span className="text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded font-mono">
-                      bot
-                    </span>
-                  )}
-                  <button
-                    onClick={() => onKickPlayer(p.id)}
-                    className="opacity-0 group-hover:opacity-100 p-1 hover:text-red-400 text-slate-500 rounded transition cursor-pointer"
-                    title="Удалить из комнаты"
+              <AnimatePresence>
+                {playerList.map((p) => (
+                  <motion.div
+                    key={p.id}
+                    layout
+                    initial={{ opacity: 0, scale: 0.8, y: 10 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.8, transition: { duration: 0.15 } }}
+                    transition={{ type: 'spring', stiffness: 450, damping: 25 }}
+                    className="group bg-slate-950 border border-slate-800 hover:border-slate-600 rounded-2xl px-3.5 py-2 flex items-center gap-2 shadow-sm transition"
                   >
-                    <Trash2 className="w-3 h-3" />
-                  </button>
-                </div>
-              ))}
+                    <span className="text-xl">{p.avatarEmoji}</span>
+                    <span className="text-xs font-semibold text-slate-200">{p.nickname}</span>
+                    {p.isBot && (
+                      <span className="text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded font-mono">
+                        bot
+                      </span>
+                    )}
+                    <button
+                      onClick={() => onKickPlayer(p.id)}
+                      className="opacity-0 group-hover:opacity-100 p-1 hover:text-red-400 text-slate-500 rounded transition cursor-pointer"
+                      title="Удалить из комнаты"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
             </div>
           )}
         </div>

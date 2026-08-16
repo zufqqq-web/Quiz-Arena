@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { Question, Player } from '../../types';
-import { Clock, Users, ArrowRight } from 'lucide-react';
+import { Users, ArrowRight } from 'lucide-react';
 import { sounds } from '../../utils/sound';
+import { staggerContainer, staggerItem } from '../../utils/motionVariants';
 
 interface HostQuestionActiveProps {
   question: Question;
@@ -34,8 +36,6 @@ export function HostQuestionActive({
     (p) => p.answers && p.answers[questionIndex] !== undefined
   ).length;
 
-  const isAllAnswered = playerList.length > 0 && answeredCount >= playerList.length;
-
   // Sound tick in last 5 seconds
   useEffect(() => {
     if (timeRemaining <= 5 && timeRemaining > 0) {
@@ -44,6 +44,7 @@ export function HostQuestionActive({
   }, [timeRemaining]);
 
   const progressPercent = Math.max(0, Math.min(100, (timeRemaining / totalTime) * 100));
+  const isUrgent = timeRemaining <= 5;
 
   return (
     <div id="host-question-active" className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between p-6 select-none relative overflow-hidden">
@@ -91,60 +92,100 @@ export function HostQuestionActive({
       </div>
 
       {/* Center Question Prompt Area & Timer */}
-      <div className="my-auto max-w-5xl w-full mx-auto flex flex-col items-center z-10 text-center">
-        {/* Giant Timer Ring / Badge */}
+      <div className="my-auto max-w-5xl w-full mx-auto flex flex-col items-center z-10 text-center py-4">
+        {/* Giant Smooth Timer Ring / Badge */}
         <div className="mb-4 flex items-center justify-center">
-          <div
-            className={`w-16 h-16 md:w-20 md:h-20 rounded-full border-4 flex items-center justify-center font-mono font-black text-2xl md:text-3xl transition-all shadow-xl ${
-              timeRemaining <= 5
-                ? 'border-red-500 bg-red-950/40 text-red-400 scale-110 animate-pulse'
-                : 'border-slate-700 bg-slate-900 text-white'
-            }`}
+          <motion.div
+            animate={{
+              scale: isUrgent ? [1, 1.08, 1] : 1,
+              borderColor: isUrgent ? '#ef4444' : '#334155',
+              backgroundColor: isUrgent ? 'rgba(69, 10, 10, 0.6)' : 'rgba(15, 23, 42, 0.95)',
+              color: isUrgent ? '#f87171' : '#ffffff',
+              boxShadow: isUrgent
+                ? '0 0 30px rgba(239, 68, 68, 0.45)'
+                : '0 10px 25px -5px rgba(0, 0, 0, 0.5)',
+            }}
+            transition={{
+              scale: isUrgent ? { duration: 0.8, repeat: Infinity, ease: 'easeInOut' } : { duration: 0.3 },
+              duration: 0.3,
+            }}
+            className="w-16 h-16 md:w-20 md:h-20 rounded-full border-4 flex items-center justify-center font-mono font-black text-2xl md:text-3xl"
           >
-            {timeRemaining}
-          </div>
+            <AnimatePresence mode="popLayout" initial={false}>
+              <motion.span
+                key={timeRemaining}
+                initial={{ opacity: 0.6, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0.6, y: 4 }}
+                transition={{ duration: 0.15 }}
+              >
+                {timeRemaining}
+              </motion.span>
+            </AnimatePresence>
+          </motion.div>
         </div>
 
         {/* Question Title Box */}
-        <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 md:p-8 shadow-2xl backdrop-blur-xl w-full">
+        <motion.div
+          initial={{ opacity: 0, y: 15, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+          className="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 md:p-8 shadow-2xl backdrop-blur-xl w-full"
+        >
           <h1 className="text-xl md:text-3xl font-bold text-white leading-tight">
             {question.title}
           </h1>
 
           {/* Optional Media Image */}
           {question.imageUrl && (
-            <div className="mt-4 max-h-56 overflow-hidden rounded-2xl border border-slate-800 flex items-center justify-center bg-black/40">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.1, duration: 0.35 }}
+              className="mt-4 max-h-56 overflow-hidden rounded-2xl border border-slate-800 flex items-center justify-center bg-black/40"
+            >
               <img
                 src={question.imageUrl}
                 alt="Question media"
                 referrerPolicy="no-referrer"
                 className="max-h-56 w-auto object-contain rounded-xl"
               />
-            </div>
+            </motion.div>
           )}
-        </div>
+        </motion.div>
       </div>
 
       {/* Question Options Grid Presentation */}
       <div className="max-w-5xl w-full mx-auto z-10">
         {/* Timer Bar */}
-        <div className="w-full bg-slate-900 h-2 rounded-full mb-4 overflow-hidden border border-slate-800">
-          <div
-            className={`h-full transition-all duration-1000 ease-linear ${
-              timeRemaining <= 5 ? 'bg-red-500' : 'bg-slate-200'
-            }`}
-            style={{ width: `${progressPercent}%` }}
+        <div className="w-full bg-slate-900 h-2.5 rounded-full mb-4 overflow-hidden border border-slate-800">
+          <motion.div
+            className="h-full"
+            animate={{
+              width: `${progressPercent}%`,
+              backgroundColor: isUrgent ? '#ef4444' : '#e2e8f0',
+            }}
+            transition={{
+              width: { duration: 1, ease: 'linear' },
+              backgroundColor: { duration: 0.3 },
+            }}
           />
         </div>
 
-        {/* Choices Display (for Single, Multi, Poll, Boolean) */}
+        {/* Choices Display (for Single, Multi, Poll) */}
         {(question.type === 'single' || question.type === 'multiple' || question.type === 'poll') && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+          <motion.div
+            variants={staggerContainer(0.06, 0.05)}
+            initial="hidden"
+            animate="show"
+            className="grid grid-cols-1 md:grid-cols-2 gap-3.5"
+          >
             {question.options.map((opt, idx) => {
               const theme = OPTION_THEMES[idx % OPTION_THEMES.length];
               return (
-                <div
+                <motion.div
                   key={opt.id}
+                  variants={staggerItem}
                   className={`rounded-2xl border-2 p-4 flex items-center gap-3.5 backdrop-blur-md ${theme.bg}`}
                 >
                   <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-base shadow-sm ${theme.labelColor}`}>
@@ -153,19 +194,25 @@ export function HostQuestionActive({
                   <span className="text-base md:text-lg font-semibold text-white">
                     {opt.text}
                   </span>
-                </div>
+                </motion.div>
               );
             })}
-          </div>
+          </motion.div>
         )}
 
         {question.type === 'boolean' && (
-          <div className="grid grid-cols-2 gap-4">
+          <motion.div
+            variants={staggerContainer(0.08, 0.05)}
+            initial="hidden"
+            animate="show"
+            className="grid grid-cols-2 gap-4"
+          >
             {question.options.map((opt) => {
               const isTrue = opt.text.toLowerCase().includes('правда') || opt.text.toLowerCase().includes('true');
               return (
-                <div
+                <motion.div
                   key={opt.id}
+                  variants={staggerItem}
                   className={`rounded-2xl border-2 p-6 flex items-center justify-center gap-4 text-xl font-bold ${
                     isTrue
                       ? 'bg-emerald-950/40 border-emerald-500/50 text-emerald-300'
@@ -174,28 +221,40 @@ export function HostQuestionActive({
                 >
                   <span className="text-3xl">{isTrue ? '✅' : '❌'}</span>
                   <span>{opt.text}</span>
-                </div>
+                </motion.div>
               );
             })}
-          </div>
+          </motion.div>
         )}
 
         {question.type === 'order' && (
-          <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 text-center text-sm text-slate-300">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 text-center text-sm text-slate-300"
+          >
             <span className="text-amber-400 font-semibold">Игроки упорядочивают элементы на своих устройствах...</span>
-          </div>
+          </motion.div>
         )}
 
         {question.type === 'text' && (
-          <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 text-center text-sm text-slate-300">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 text-center text-sm text-slate-300"
+          >
             <span className="text-pink-400 font-semibold">Игроки вводят точный текстовый ответ на своих экранах...</span>
-          </div>
+          </motion.div>
         )}
 
         {question.type === 'number' && (
-          <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 text-center text-sm text-slate-300">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 text-center text-sm text-slate-300"
+          >
             <span className="text-blue-400 font-semibold">Игроки вводят числовое значение на своих экранах...</span>
-          </div>
+          </motion.div>
         )}
       </div>
     </div>

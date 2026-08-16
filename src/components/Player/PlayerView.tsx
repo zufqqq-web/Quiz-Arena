@@ -1,8 +1,10 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { Player, RoomState, PlayerAnswer, GameReaction, PowerUpType } from '../../types';
 import { syncBus, SyncMessage } from '../../utils/syncBus';
 import { storage } from '../../utils/storage';
 import { calculateScore } from '../../utils/botSimulator';
+import { screenVariants } from '../../utils/motionVariants';
 import { PlayerJoin } from './PlayerJoin';
 import { PlayerWaitingLobby } from './PlayerWaitingLobby';
 import { PlayerAnswerScreen } from './PlayerAnswerScreen';
@@ -17,12 +19,40 @@ interface PlayerViewProps {
 }
 
 export function PlayerView({ initialPin = '', onExit }: PlayerViewProps) {
-  const [player, setPlayer] = useState<Player | null>(null);
-  const [roomCode, setRoomCode] = useState<string>(initialPin);
-  const [roomState, setRoomState] = useState<RoomState | null>(null);
+  // Restore player from stored session if present and matching
+  const [player, setPlayer] = useState<Player | null>(() => {
+    const saved = storage.getPlayerSession();
+    if (saved && (!initialPin || saved.roomCode === initialPin)) {
+      return saved.player;
+    }
+    return null;
+  });
+
+  const [roomCode, setRoomCode] = useState<string>(() => {
+    const saved = storage.getPlayerSession();
+    if (saved && (!initialPin || saved.roomCode === initialPin)) {
+      return saved.roomCode;
+    }
+    return initialPin;
+  });
+
+  const [roomState, setRoomState] = useState<RoomState | null>(() => {
+    const active = storage.getActiveRoom();
+    if (active && (!initialPin || active.roomCode === initialPin)) {
+      return active;
+    }
+    return null;
+  });
+
   const [reactions, setReactions] = useState<GameReaction[]>([]);
   const [hasAnsweredCurrent, setHasAnsweredCurrent] = useState<boolean>(false);
-  const [errorMessage, setErrorMessage] = useState<string>('');
+
+  // Sync player session to storage
+  useEffect(() => {
+    if (player && roomCode) {
+      storage.savePlayerSession({ roomCode, player });
+    }
+  }, [player, roomCode]);
 
   // Listen to Sync Bus
   useEffect(() => {
@@ -42,6 +72,7 @@ export function PlayerView({ initialPin = '', onExit }: PlayerViewProps) {
           alert('Вы были удалены из комнаты ведущим.');
           setPlayer(null);
           setRoomState(null);
+          storage.clearPlayerSession();
         }
       } else if (msg.type === 'EMOJI_REACTION') {
         if (roomCode && msg.roomCode === roomCode) {
@@ -75,9 +106,11 @@ export function PlayerView({ initialPin = '', onExit }: PlayerViewProps) {
   // Reset hasAnswered on question change
   useEffect(() => {
     if (roomState?.status === 'question_active') {
-      setHasAnsweredCurrent(false);
+      // Check if player already answered in restored state
+      const currentAns = player?.answers?.[roomState.currentQuestionIndex];
+      setHasAnsweredCurrent(!!currentAns);
     }
-  }, [roomState?.currentQuestionIndex, roomState?.status]);
+  }, [roomState?.currentQuestionIndex, roomState?.status, player?.answers]);
 
   // Join handler
   const handleJoin = (enteredPin: string, nickname: string, avatarEmoji: string) => {
@@ -102,6 +135,7 @@ export function PlayerView({ initialPin = '', onExit }: PlayerViewProps) {
 
     setPlayer(newPlayer);
     setRoomCode(enteredPin);
+    storage.savePlayerSession({ roomCode: enteredPin, player: newPlayer });
 
     // Broadcast join request to Host
     syncBus.broadcast({
@@ -219,7 +253,6 @@ export function PlayerView({ initialPin = '', onExit }: PlayerViewProps) {
       isCorrect = diff <= tolerance;
     }
 
-    const isDoublePointsActive = player.activePowerUp === 'double_points';
     const isShieldActive = player.activePowerUp === 'shield';
 
     const { points, streakBonus, streakMultiplier } = isCorrect
@@ -298,28 +331,51 @@ export function PlayerView({ initialPin = '', onExit }: PlayerViewProps) {
     }
     setPlayer(null);
     setRoomState(null);
+    storage.clearPlayerSession();
     onExit();
   };
 
   // If player hasn't joined room yet
   if (!player) {
     return (
-      <PlayerJoin
-        initialPin={initialPin}
-        onJoin={handleJoin}
-        onCancel={onExit}
-      />
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.div
+          key="player-join"
+          variants={screenVariants}
+          initial="initial"
+          animate="animate"
+          exit="exit"
+          className="w-full min-h-screen"
+        >
+          <PlayerJoin
+            initialPin={roomCode}
+            onJoin={handleJoin}
+            onCancel={onExit}
+          />
+        </motion.div>
+      </AnimatePresence>
     );
   }
 
   // Room not yet found / waiting for host
   if (!roomState) {
     return (
-      <PlayerWaitingLobby
-        player={player}
-        onSendReaction={handleSendReaction}
-        onLeave={handleLeave}
-      />
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.div
+          key="player-waiting"
+          variants={screenVariants}
+          initial="initial"
+          animate="animate"
+          exit="exit"
+          className="w-full min-h-screen"
+        >
+          <PlayerWaitingLobby
+            player={player}
+            onSendReaction={handleSendReaction}
+            onLeave={handleLeave}
+          />
+        </motion.div>
+      </AnimatePresence>
     );
   }
 
@@ -330,45 +386,87 @@ export function PlayerView({ initialPin = '', onExit }: PlayerViewProps) {
   const myAnswerForCurrent = player.answers?.[roomState.currentQuestionIndex];
 
   return (
-    <div className="relative min-h-screen bg-slate-950 text-slate-100 font-sans">
+    <div className="relative min-h-screen bg-slate-950 text-slate-100 font-sans overflow-hidden">
       <ReactionsStream reactions={reactions} />
 
-      {roomState.status === 'lobby' ? (
-        <PlayerWaitingLobby
-          player={player}
-          quiz={roomState.quiz}
-          onSendReaction={handleSendReaction}
-          onLeave={handleLeave}
-        />
-      ) : roomState.status === 'question_active' ? (
-        <PlayerAnswerScreen
-          question={currentQ}
-          questionIndex={roomState.currentQuestionIndex}
-          totalQuestions={roomState.quiz.questions.length}
-          player={player}
-          hasAnswered={hasAnsweredCurrent}
-          onSubmitAnswer={handleSubmitAnswer}
-          onSendReaction={handleSendReaction}
-          onUsePowerUp={handleUsePowerUp}
-        />
-      ) : roomState.status === 'question_reveal' || roomState.status === 'leaderboard' ? (
-        <PlayerAnswerResult
-          player={player}
-          question={currentQ}
-          questionIndex={roomState.currentQuestionIndex}
-          answer={myAnswerForCurrent}
-          rank={myRank}
-          totalPlayers={allPlayersSorted.length}
-        />
-      ) : roomState.status === 'podium' || roomState.status === 'finished' ? (
-        <PlayerPodiumResult
-          player={player}
-          quiz={roomState.quiz}
-          rank={myRank}
-          totalPlayers={allPlayersSorted.length}
-          onExit={handleLeave}
-        />
-      ) : null}
+      <AnimatePresence mode="wait" initial={false}>
+        {roomState.status === 'lobby' ? (
+          <motion.div
+            key="player-lobby"
+            custom="default"
+            variants={screenVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            className="w-full min-h-screen"
+          >
+            <PlayerWaitingLobby
+              player={player}
+              quiz={roomState.quiz}
+              onSendReaction={handleSendReaction}
+              onLeave={handleLeave}
+            />
+          </motion.div>
+        ) : roomState.status === 'question_active' ? (
+          <motion.div
+            key={`player-question-${roomState.currentQuestionIndex}`}
+            custom="lobby-start"
+            variants={screenVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            className="w-full min-h-screen"
+          >
+            <PlayerAnswerScreen
+              question={currentQ}
+              questionIndex={roomState.currentQuestionIndex}
+              totalQuestions={roomState.quiz.questions.length}
+              player={player}
+              hasAnswered={hasAnsweredCurrent}
+              onSubmitAnswer={handleSubmitAnswer}
+              onSendReaction={handleSendReaction}
+              onUsePowerUp={handleUsePowerUp}
+            />
+          </motion.div>
+        ) : roomState.status === 'question_reveal' || roomState.status === 'leaderboard' ? (
+          <motion.div
+            key={`player-result-${roomState.currentQuestionIndex}-${roomState.status}`}
+            custom="reveal"
+            variants={screenVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            className="w-full min-h-screen"
+          >
+            <PlayerAnswerResult
+              player={player}
+              question={currentQ}
+              questionIndex={roomState.currentQuestionIndex}
+              answer={myAnswerForCurrent}
+              rank={myRank}
+              totalPlayers={allPlayersSorted.length}
+            />
+          </motion.div>
+        ) : roomState.status === 'podium' || roomState.status === 'finished' ? (
+          <motion.div
+            key="player-podium"
+            custom="podium"
+            variants={screenVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            className="w-full min-h-screen"
+          >
+            <PlayerPodiumResult
+              player={player}
+              quiz={roomState.quiz}
+              rank={myRank}
+              totalPlayers={allPlayersSorted.length}
+              onExit={handleLeave}
+            />
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
     </div>
   );
 }

@@ -1,7 +1,10 @@
 import { useEffect } from 'react';
+import { motion } from 'motion/react';
 import { Player } from '../../types';
 import { Trophy, Flame, ArrowRight, ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react';
 import { sounds } from '../../utils/sound';
+import { AnimatedCounter } from '../Common/AnimatedCounter';
+import { staggerContainer, staggerItem, buttonHoverTap } from '../../utils/motionVariants';
 
 interface HostLeaderboardProps {
   players: Record<string, Player>;
@@ -41,7 +44,7 @@ export function HostLeaderboard({
   }, []);
 
   return (
-    <div id="host-leaderboard" className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between p-6 select-none relative overflow-hidden">
+    <div id="host-leaderboard" className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between p-6 select-none relative overflow-hidden font-sans">
       {/* Top Header */}
       <div className="flex items-center justify-between z-10">
         <div className="flex items-center gap-3">
@@ -54,8 +57,11 @@ export function HostLeaderboard({
           </span>
         </div>
 
-        <button
+        <motion.button
           id="btn-next-question-or-podium"
+          variants={buttonHoverTap}
+          whileHover="hover"
+          whileTap="tap"
           onClick={() => {
             sounds.playClick();
             if (isLastQuestion) {
@@ -68,11 +74,16 @@ export function HostLeaderboard({
         >
           <span>{isLastQuestion ? 'Финальный подиум 🏆' : 'Следующий вопрос'}</span>
           <ArrowRight className="w-4 h-4" />
-        </button>
+        </motion.button>
       </div>
 
-      {/* Leaderboard Rankings List */}
-      <div className="my-auto max-w-2xl w-full mx-auto space-y-3 z-10">
+      {/* Leaderboard Rankings List with Layout Animation */}
+      <motion.div
+        variants={staggerContainer(0.08, 0.1)}
+        initial="hidden"
+        animate="show"
+        className="my-auto max-w-2xl w-full mx-auto space-y-3 z-10"
+      >
         {sortedPlayers.slice(0, 5).map((player, rank) => {
           const isTop1 = rank === 0;
           const isTop2 = rank === 1;
@@ -84,9 +95,15 @@ export function HostLeaderboard({
           const streakMultiplier = recentAnswer?.streakMultiplier || (player.streak >= 8 ? 1.5 : player.streak >= 5 ? 1.25 : player.streak >= 3 ? 1.1 : 1.0);
 
           return (
-            <div
+            <motion.div
+              layout
+              layoutId={`leaderboard-item-${player.id}`}
               key={player.id}
-              className={`rounded-2xl border p-4 flex items-center justify-between transition-all duration-300 transform ${
+              variants={staggerItem}
+              transition={{
+                layout: { type: 'spring', stiffness: 350, damping: 30 },
+              }}
+              className={`rounded-2xl border p-4 flex items-center justify-between transition-colors ${
                 isTop1
                   ? 'bg-slate-900 border-amber-500/80 ring-2 ring-amber-500/30 scale-[1.02] shadow-xl'
                   : isTop2
@@ -155,16 +172,16 @@ export function HostLeaderboard({
                 </div>
               </div>
 
-              {/* Total Score */}
+              {/* Total Score with Smooth Rolling Counter */}
               <div className="text-right">
                 <div className="text-lg md:text-xl font-mono font-black text-white">
-                  {player.score.toLocaleString('ru-RU')}
+                  <AnimatedCounter value={player.score} duration={700} />
                 </div>
                 <div className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">
                   баллов
                 </div>
               </div>
-            </div>
+            </motion.div>
           );
         })}
 
@@ -173,7 +190,7 @@ export function HostLeaderboard({
             ...и еще {sortedPlayers.length - 5} игроков в зачете
           </div>
         )}
-      </div>
+      </motion.div>
 
       <div className="h-4" />
     </div>

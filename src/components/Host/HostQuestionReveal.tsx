@@ -1,7 +1,9 @@
 import { useEffect } from 'react';
+import { motion } from 'motion/react';
 import { Question, Player } from '../../types';
 import { Check, X, ArrowRight, Lightbulb, BarChart2 } from 'lucide-react';
 import { sounds } from '../../utils/sound';
+import { staggerContainer, staggerItem, buttonHoverTap } from '../../utils/motionVariants';
 
 interface HostQuestionRevealProps {
   question: Question;
@@ -53,7 +55,7 @@ export function HostQuestionReveal({
   const correctRatePercent = totalPlayers > 0 ? Math.round((correctCount / totalPlayers) * 100) : 0;
 
   return (
-    <div id="host-question-reveal" className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between p-6 select-none relative overflow-hidden">
+    <div id="host-question-reveal" className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between p-6 select-none relative overflow-hidden font-sans">
       {/* Top Bar */}
       <div className="flex items-center justify-between z-10">
         <div className="flex items-center gap-3">
@@ -65,8 +67,11 @@ export function HostQuestionReveal({
           </span>
         </div>
 
-        <button
+        <motion.button
           id="btn-next-leaderboard"
+          variants={buttonHoverTap}
+          whileHover="hover"
+          whileTap="tap"
           onClick={() => {
             sounds.playClick();
             onProceedToLeaderboard();
@@ -75,21 +80,31 @@ export function HostQuestionReveal({
         >
           <span>Таблица лидеров</span>
           <ArrowRight className="w-4 h-4" />
-        </button>
+        </motion.button>
       </div>
 
       {/* Center Question & Result Distribution Bars */}
       <div className="my-auto max-w-4xl w-full mx-auto flex flex-col gap-6 z-10">
         {/* Question Title */}
-        <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 text-center shadow-xl">
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 text-center shadow-xl"
+        >
           <h2 className="text-xl md:text-2xl font-bold text-white leading-snug">
             {question.title}
           </h2>
-        </div>
+        </motion.div>
 
         {/* Options Breakdown Chart */}
         {(question.type === 'single' || question.type === 'multiple' || question.type === 'poll' || question.type === 'boolean') && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <motion.div
+            variants={staggerContainer(0.06, 0.05)}
+            initial="hidden"
+            animate="show"
+            className="grid grid-cols-1 md:grid-cols-2 gap-4"
+          >
             {question.options.map((opt, idx) => {
               const theme = OPTION_THEMES[idx % OPTION_THEMES.length];
               const votes = optionVotes[opt.id] || 0;
@@ -97,20 +112,23 @@ export function HostQuestionReveal({
               const isCorrect = opt.isCorrect;
 
               return (
-                <div
+                <motion.div
                   key={opt.id}
+                  variants={staggerItem}
                   className={`relative overflow-hidden rounded-2xl border-2 p-4 flex flex-col justify-between transition-all ${
                     isCorrect
                       ? 'bg-emerald-950/40 border-emerald-500 ring-2 ring-emerald-500/40 shadow-lg'
                       : 'bg-slate-900 border-slate-800 opacity-70'
                   }`}
                 >
-                  {/* Progress Fill Background */}
-                  <div
-                    className={`absolute inset-0 transition-all duration-1000 ${
+                  {/* Animated Progress Fill Background */}
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${votePct}%` }}
+                    transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 0.15 }}
+                    className={`absolute inset-0 ${
                       isCorrect ? 'bg-emerald-500/20' : 'bg-slate-800/40'
                     }`}
-                    style={{ width: `${votePct}%` }}
                   />
 
                   <div className="relative z-10 flex items-center justify-between gap-3">
@@ -134,27 +152,35 @@ export function HostQuestionReveal({
                       </span>
                     </div>
                   </div>
-                </div>
+                </motion.div>
               );
             })}
-          </div>
+          </motion.div>
         )}
 
         {/* Text Answer Reveal */}
         {question.type === 'text' && (
-          <div className="bg-slate-900 border-2 border-emerald-500/60 rounded-2xl p-6 text-center shadow-xl">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-slate-900 border-2 border-emerald-500/60 rounded-2xl p-6 text-center shadow-xl"
+          >
             <span className="text-xs uppercase tracking-wider text-slate-400 font-bold block mb-2">
               Правильный текстовый ответ:
             </span>
             <div className="text-2xl md:text-3xl font-mono font-black text-emerald-400">
               «{question.correctTextAnswer}»
             </div>
-          </div>
+          </motion.div>
         )}
 
         {/* Number Answer Reveal */}
         {question.type === 'number' && (
-          <div className="bg-slate-900 border-2 border-emerald-500/60 rounded-2xl p-6 text-center shadow-xl">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-slate-900 border-2 border-emerald-500/60 rounded-2xl p-6 text-center shadow-xl"
+          >
             <span className="text-xs uppercase tracking-wider text-slate-400 font-bold block mb-2">
               Правильное числовое значение:
             </span>
@@ -166,32 +192,44 @@ export function HostQuestionReveal({
                 </span>
               )}
             </div>
-          </div>
+          </motion.div>
         )}
 
         {/* Dynamic difficulty alert */}
         {totalPlayers > 0 && correctRatePercent <= 35 && question.type !== 'poll' && (
-          <div className="bg-red-950/40 border border-red-800/80 rounded-2xl p-3.5 flex items-center gap-3 text-xs text-red-300">
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-red-950/40 border border-red-800/80 rounded-2xl p-3.5 flex items-center gap-3 text-xs text-red-300"
+          >
             <span className="text-lg">⚠️</span>
             <div>
               <strong className="text-white block">Сложный вопрос для аудитории!</strong>
               Только {correctRatePercent}% участников смогли дать верный ответ.
             </div>
-          </div>
+          </motion.div>
         )}
         {totalPlayers > 0 && correctRatePercent >= 85 && question.type !== 'poll' && (
-          <div className="bg-emerald-950/40 border border-emerald-800/80 rounded-2xl p-3.5 flex items-center gap-3 text-xs text-emerald-300">
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-emerald-950/40 border border-emerald-800/80 rounded-2xl p-3.5 flex items-center gap-3 text-xs text-emerald-300"
+          >
             <span className="text-lg">🔥</span>
             <div>
               <strong className="text-white block">Отличный результат!</strong>
               {correctRatePercent}% игроков справились с этим заданием.
             </div>
-          </div>
+          </motion.div>
         )}
 
         {/* Order Answer Reveal */}
         {question.type === 'order' && (
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-2">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-2"
+          >
             <span className="text-xs uppercase tracking-wider text-amber-400 font-bold block mb-2">
               Правильная последовательность:
             </span>
@@ -205,18 +243,23 @@ export function HostQuestionReveal({
                   <span>{opt.text}</span>
                 </div>
               ))}
-          </div>
+          </motion.div>
         )}
 
         {/* Educational Explanation Box */}
         {question.explanation && (
-          <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 flex items-start gap-3 text-xs md:text-sm text-slate-300 backdrop-blur-md">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 flex items-start gap-3 text-xs md:text-sm text-slate-300 backdrop-blur-md"
+          >
             <Lightbulb className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
             <div>
               <span className="font-bold text-white block mb-0.5">Разбор факта:</span>
               <span>{question.explanation}</span>
             </div>
-          </div>
+          </motion.div>
         )}
       </div>
 

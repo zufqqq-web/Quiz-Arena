@@ -1,8 +1,16 @@
-import { Quiz, Question, RoomState } from '../types';
+import { Quiz, Question, RoomState, Player } from '../types';
 import { DEFAULT_QUIZZES } from '../data/defaultQuizzes';
 
 const QUIZZES_STORAGE_KEY = 'quizcraft_saved_quizzes';
 const ACTIVE_ROOM_KEY = 'quizcraft_active_room';
+const ACTIVE_HOST_QUIZ_KEY = 'quizcraft_active_host_quiz';
+const PLAYER_SESSION_KEY = 'quizcraft_player_session';
+
+export interface PlayerSession {
+  roomCode: string;
+  player: Player;
+  joinedAt?: number;
+}
 
 export const storage = {
   getQuizzes(): Quiz[] {
@@ -10,14 +18,19 @@ export const storage = {
     try {
       const data = localStorage.getItem(QUIZZES_STORAGE_KEY);
       if (!data) {
-        localStorage.setItem(QUIZZES_STORAGE_KEY, JSON.stringify(DEFAULT_QUIZZES));
+        this.saveQuizzes(DEFAULT_QUIZZES);
         return DEFAULT_QUIZZES;
       }
-      return JSON.parse(data);
-    } catch (e) {
-      console.error('Failed to parse quizzes from storage', e);
+      const parsed = JSON.parse(data);
+      return Array.isArray(parsed) && parsed.length > 0 ? parsed : DEFAULT_QUIZZES;
+    } catch {
       return DEFAULT_QUIZZES;
     }
+  },
+
+  getQuizById(quizId: string): Quiz | null {
+    const quizzes = this.getQuizzes();
+    return quizzes.find((q) => q.id === quizId) || null;
   },
 
   saveQuizzes(quizzes: Quiz[]) {
@@ -25,7 +38,7 @@ export const storage = {
     try {
       localStorage.setItem(QUIZZES_STORAGE_KEY, JSON.stringify(quizzes));
     } catch (e) {
-      console.error('Failed to save quizzes to storage', e);
+      console.warn('[QuizCraft Storage] Quota exceeded or error saving quizzes:', e);
     }
   },
 
@@ -35,7 +48,7 @@ export const storage = {
     if (existingIndex >= 0) {
       quizzes[existingIndex] = { ...quiz, updatedAt: Date.now() };
     } else {
-      quizzes.unshift({ ...quiz, createdAt: Date.now(), updatedAt: Date.now() });
+      quizzes.unshift({ ...quiz, createdAt: quiz.createdAt || Date.now(), updatedAt: Date.now() });
     }
     this.saveQuizzes(quizzes);
   },
@@ -72,24 +85,32 @@ export const storage = {
   },
 
   exportQuizAsJSON(quiz: Quiz) {
-    const blob = new Blob([JSON.stringify(quiz, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${quiz.title.toLowerCase().replace(/[^a-zа-я0-9]/gi, '_')}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+    try {
+      const blob = new Blob([JSON.stringify(quiz, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${quiz.title.toLowerCase().replace(/[^a-zа-я0-9]/gi, '_')}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error('[QuizCraft Storage] Export quiz error:', e);
+    }
   },
 
   exportAllQuizzesAsJSON() {
-    const quizzes = this.getQuizzes();
-    const blob = new Blob([JSON.stringify(quizzes, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `quizcraft_all_quizzes_${new Date().toISOString().slice(0, 10)}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+    try {
+      const quizzes = this.getQuizzes();
+      const blob = new Blob([JSON.stringify(quizzes, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `quizcraft_all_quizzes_${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error('[QuizCraft Storage] Export all quizzes error:', e);
+    }
   },
 
   createNewQuizTemplate(): Quiz {
@@ -105,16 +126,16 @@ export const storage = {
       questions: [
         {
           id: 'q-' + Date.now() + '-1',
-          title: 'Первый вопрос квиза: выберите правильный вариант',
+          title: 'Первый вопрос квиза: выберите правильный вариант ответа',
           type: 'single',
           timeLimit: 20,
           pointsMultiplier: 1,
           explanation: 'Краткое и полезное пояснение факта для участников раунда.',
           options: [
-            { id: 'opt-1', text: 'Правильный ответ', isCorrect: true },
-            { id: 'opt-2', text: 'Вариант 2', isCorrect: false },
-            { id: 'opt-3', text: 'Вариант 3', isCorrect: false },
-            { id: 'opt-4', text: 'Вариант 4', isCorrect: false },
+            { id: 'opt-1', text: 'Правильный вариант ответа', isCorrect: true },
+            { id: 'opt-2', text: 'Вариант ответа 2', isCorrect: false },
+            { id: 'opt-3', text: 'Вариант ответа 3', isCorrect: false },
+            { id: 'opt-4', text: 'Вариант ответа 4', isCorrect: false },
           ],
         },
       ],
@@ -126,7 +147,7 @@ export const storage = {
     if (type === 'boolean') {
       return {
         id,
-        title: 'Правда или ложь: утверждение о факте',
+        title: 'Правда или ложь: укажите верность утверждения',
         type: 'boolean',
         timeLimit: 15,
         pointsMultiplier: 1,
@@ -172,7 +193,7 @@ export const storage = {
     if (type === 'text') {
       return {
         id,
-        title: 'Введите точный ответ (текст):',
+        title: 'Введите точный текстовый ответ:',
         type: 'text',
         timeLimit: 25,
         pointsMultiplier: 1,
@@ -190,7 +211,7 @@ export const storage = {
         pointsMultiplier: 1,
         correctNumberAnswer: 42,
         numberTolerance: 0,
-        explanation: 'Точный ответ или допустимый диапазон.',
+        explanation: 'Точный ответ или допустимый диапазон погрешности.',
         options: [],
       };
     }
@@ -213,13 +234,13 @@ export const storage = {
     // single choice default
     return {
       id,
-      title: 'Текст вашего вопроса...',
+      title: 'Текст вопроса: выберите один правильный ответ',
       type: 'single',
       timeLimit: 20,
       pointsMultiplier: 1,
       explanation: 'Интересный факт или объяснение правильного ответа.',
       options: [
-        { id: 's-1', text: 'Вариант ответа 1', isCorrect: true },
+        { id: 's-1', text: 'Вариант ответа 1 (верный)', isCorrect: true },
         { id: 's-2', text: 'Вариант ответа 2', isCorrect: false },
         { id: 's-3', text: 'Вариант ответа 3', isCorrect: false },
         { id: 's-4', text: 'Вариант ответа 4', isCorrect: false },
@@ -227,6 +248,7 @@ export const storage = {
     };
   },
 
+  // Active Host & Room State Persistence
   saveActiveRoom(room: RoomState | null) {
     if (typeof window === 'undefined') return;
     try {
@@ -235,9 +257,7 @@ export const storage = {
       } else {
         localStorage.removeItem(ACTIVE_ROOM_KEY);
       }
-    } catch (e) {
-      console.error(e);
-    }
+    } catch {}
   },
 
   getActiveRoom(): RoomState | null {
@@ -245,8 +265,58 @@ export const storage = {
     try {
       const data = localStorage.getItem(ACTIVE_ROOM_KEY);
       return data ? JSON.parse(data) : null;
-    } catch (e) {
+    } catch {
       return null;
     }
+  },
+
+  saveActiveHostQuiz(quiz: Quiz | null) {
+    if (typeof window === 'undefined') return;
+    try {
+      if (quiz) {
+        localStorage.setItem(ACTIVE_HOST_QUIZ_KEY, JSON.stringify(quiz));
+      } else {
+        localStorage.removeItem(ACTIVE_HOST_QUIZ_KEY);
+      }
+    } catch {}
+  },
+
+  getActiveHostQuiz(): Quiz | null {
+    if (typeof window === 'undefined') return null;
+    try {
+      const data = localStorage.getItem(ACTIVE_HOST_QUIZ_KEY);
+      return data ? JSON.parse(data) : null;
+    } catch {
+      return null;
+    }
+  },
+
+  // Active Player Session Persistence
+  savePlayerSession(session: PlayerSession | null) {
+    if (typeof window === 'undefined') return;
+    try {
+      if (session) {
+        localStorage.setItem(PLAYER_SESSION_KEY, JSON.stringify(session));
+      } else {
+        localStorage.removeItem(PLAYER_SESSION_KEY);
+      }
+    } catch {}
+  },
+
+  getPlayerSession(): PlayerSession | null {
+    if (typeof window === 'undefined') return null;
+    try {
+      const data = localStorage.getItem(PLAYER_SESSION_KEY);
+      return data ? JSON.parse(data) : null;
+    } catch {
+      return null;
+    }
+  },
+
+  clearPlayerSession() {
+    if (typeof window === 'undefined') return;
+    try {
+      localStorage.removeItem(PLAYER_SESSION_KEY);
+    } catch {}
   },
 };

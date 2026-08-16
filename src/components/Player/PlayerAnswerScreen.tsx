@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { Question, Player, PowerUpType } from '../../types';
 import { Check, ArrowUp, ArrowDown, Send, Sparkles, Shield, Zap, Scissors, Clock } from 'lucide-react';
 import { sounds } from '../../utils/sound';
+import { staggerContainer, staggerItem } from '../../utils/motionVariants';
 
 interface PlayerAnswerScreenProps {
   question: Question;
@@ -203,30 +205,46 @@ export function PlayerAnswerScreen({
       <div className="my-auto max-w-lg w-full mx-auto flex-1 flex flex-col justify-center py-4 z-10">
         {hasAnswered ? (
           /* Waiting for other players after answer submitted */
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 text-center space-y-4 shadow-2xl animate-in zoom-in-95 duration-150">
-            <div className="w-16 h-16 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-3xl mx-auto animate-pulse">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.94 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.3 }}
+            className="bg-slate-900 border border-slate-800 rounded-3xl p-8 text-center space-y-4 shadow-2xl"
+          >
+            <motion.div
+              animate={{ scale: [1, 1.1, 1], rotate: [0, 5, -5, 0] }}
+              transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+              className="w-16 h-16 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-3xl mx-auto"
+            >
               ⌛
-            </div>
+            </motion.div>
             <h3 className="text-xl font-bold text-white">Ответ принят!</h3>
             <p className="text-xs text-slate-400">
               Ждем, пока остальные участники ответят или истечет таймер...
             </p>
-          </div>
+          </motion.div>
         ) : (
           /* Active Interactive Controls */
           <>
             {/* TYPE 1: Single choice & Poll 4 tactile blocks */}
             {(question.type === 'single' || question.type === 'poll') && (
-              <div className="grid grid-cols-2 gap-3.5 h-full min-h-[300px]">
+              <motion.div
+                variants={staggerContainer(0.05, 0.05)}
+                initial="hidden"
+                animate="show"
+                className="grid grid-cols-2 gap-3.5 h-full min-h-[300px]"
+              >
                 {question.options.map((opt, idx) => {
                   const isRemoved = removedOptionIds.includes(opt.id);
                   const btn = SHAPE_BUTTONS[idx % SHAPE_BUTTONS.length];
                   return (
-                    <button
+                    <motion.button
                       key={opt.id}
+                      variants={staggerItem}
+                      whileTap={!isRemoved ? { scale: 0.94 } : undefined}
                       disabled={isRemoved}
                       onClick={() => handleSingleClick(opt.id)}
-                      className={`rounded-3xl border-2 p-6 flex flex-col items-center justify-center gap-2 transition-transform active:scale-95 shadow-xl cursor-pointer ${
+                      className={`rounded-3xl border-2 p-6 flex flex-col items-center justify-center gap-2 shadow-xl cursor-pointer ${
                         isRemoved
                           ? 'opacity-20 bg-slate-900 border-slate-800 text-slate-600 cursor-not-allowed pointer-events-none'
                           : btn.color
@@ -236,22 +254,29 @@ export function PlayerAnswerScreen({
                       <span className="text-xs md:text-sm font-bold text-center line-clamp-2">
                         {isRemoved ? 'Исключено 50/50' : opt.text}
                       </span>
-                    </button>
+                    </motion.button>
                   );
                 })}
-              </div>
+              </motion.div>
             )}
 
             {/* TYPE 2: Boolean True / False */}
             {question.type === 'boolean' && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 min-h-[220px]">
+              <motion.div
+                variants={staggerContainer(0.06, 0.05)}
+                initial="hidden"
+                animate="show"
+                className="grid grid-cols-1 sm:grid-cols-2 gap-4 min-h-[220px]"
+              >
                 {question.options.map((opt) => {
                   const isTrue = opt.text.toLowerCase().includes('правда') || opt.text.toLowerCase().includes('true');
                   return (
-                    <button
+                    <motion.button
                       key={opt.id}
+                      variants={staggerItem}
+                      whileTap={{ scale: 0.94 }}
                       onClick={() => handleBooleanClick(opt.id)}
-                      className={`rounded-3xl border-2 p-6 flex flex-col items-center justify-center gap-3 transition-transform active:scale-95 shadow-xl cursor-pointer ${
+                      className={`rounded-3xl border-2 p-6 flex flex-col items-center justify-center gap-3 shadow-xl cursor-pointer ${
                         isTrue
                           ? 'bg-emerald-600 hover:bg-emerald-500 border-emerald-400 text-white'
                           : 'bg-red-600 hover:bg-red-500 border-red-400 text-white'
@@ -259,15 +284,19 @@ export function PlayerAnswerScreen({
                     >
                       <span className="text-5xl">{isTrue ? '✅' : '❌'}</span>
                       <span className="text-xl font-bold">{opt.text}</span>
-                    </button>
+                    </motion.button>
                   );
                 })}
-              </div>
+              </motion.div>
             )}
 
             {/* TYPE 3: Multiple Checkboxes */}
             {question.type === 'multiple' && (
-              <div className="space-y-3">
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="space-y-3"
+              >
                 <div className="text-xs text-purple-400 font-semibold text-center mb-1">
                   Выберите все верные варианты и нажмите «Отправить»:
                 </div>
@@ -277,9 +306,10 @@ export function PlayerAnswerScreen({
                     const isRemoved = removedOptionIds.includes(opt.id);
                     const btn = SHAPE_BUTTONS[idx % SHAPE_BUTTONS.length];
                     return (
-                      <button
+                      <motion.button
                         key={opt.id}
                         type="button"
+                        whileTap={!isRemoved ? { scale: 0.97 } : undefined}
                         disabled={isRemoved}
                         onClick={() => handleToggleMulti(opt.id)}
                         className={`rounded-2xl border-2 p-4 flex items-center justify-between gap-3 text-left transition cursor-pointer ${
@@ -301,29 +331,35 @@ export function PlayerAnswerScreen({
                         >
                           {isChecked && <Check className="w-4 h-4 stroke-[3]" />}
                         </div>
-                      </button>
+                      </motion.button>
                     );
                   })}
                 </div>
 
-                <button
+                <motion.button
+                  whileTap={{ scale: 0.97 }}
                   disabled={selectedMulti.length === 0}
                   onClick={handleConfirmMulti}
                   className="w-full mt-4 py-3.5 rounded-2xl bg-slate-100 hover:bg-white text-slate-950 font-bold text-sm transition shadow-xl disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                 >
                   Отправить ответ ({selectedMulti.length})
-                </button>
-              </div>
+                </motion.button>
+              </motion.div>
             )}
 
             {/* TYPE 4: Order Arrange */}
             {question.type === 'order' && (
-              <div className="space-y-2.5">
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="space-y-2.5"
+              >
                 <div className="text-xs text-amber-400 font-semibold text-center mb-1">
                   Упорядочите элементы сверху вниз стрелками:
                 </div>
                 {orderOptions.map((opt, idx) => (
-                  <div
+                  <motion.div
+                    layout
                     key={opt.id}
                     className="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 flex items-center justify-between gap-3 shadow-sm"
                   >
@@ -335,33 +371,36 @@ export function PlayerAnswerScreen({
                     </div>
 
                     <div className="flex items-center gap-1">
-                      <button
+                      <motion.button
+                        whileTap={{ scale: 0.9 }}
                         type="button"
                         disabled={idx === 0}
                         onClick={() => handleMoveOrder(idx, 'up')}
                         className="p-1.5 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-300 disabled:opacity-20 cursor-pointer"
                       >
                         <ArrowUp className="w-4 h-4" />
-                      </button>
-                      <button
+                      </motion.button>
+                      <motion.button
+                        whileTap={{ scale: 0.9 }}
                         type="button"
                         disabled={idx === orderOptions.length - 1}
                         onClick={() => handleMoveOrder(idx, 'down')}
                         className="p-1.5 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-300 disabled:opacity-20 cursor-pointer"
                       >
                         <ArrowDown className="w-4 h-4" />
-                      </button>
+                      </motion.button>
                     </div>
-                  </div>
+                  </motion.div>
                 ))}
 
-                <button
+                <motion.button
+                  whileTap={{ scale: 0.97 }}
                   onClick={handleConfirmOrder}
                   className="w-full mt-4 py-3.5 rounded-2xl bg-slate-100 hover:bg-white text-slate-950 font-bold text-sm transition shadow-xl cursor-pointer"
                 >
                   Подтвердить порядок
-                </button>
-              </div>
+                </motion.button>
+              </motion.div>
             )}
 
             {/* TYPE 5: Text Input */}

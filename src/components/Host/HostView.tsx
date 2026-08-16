@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { Quiz, RoomState, Player, GameReaction, PlayerAnswer } from '../../types';
 import { syncBus, SyncMessage } from '../../utils/syncBus';
 import { storage } from '../../utils/storage';
 import { simulateBotAnswer } from '../../utils/botSimulator';
+import { screenVariants } from '../../utils/motionVariants';
 import { HostLobby } from './HostLobby';
 import { HostQuestionActive } from './HostQuestionActive';
 import { HostQuestionReveal } from './HostQuestionReveal';
@@ -13,13 +15,22 @@ import { ReactionsStream } from '../Common/ReactionsStream';
 
 interface HostViewProps {
   quiz: Quiz;
+  initialRoomCode?: string;
   onExit: () => void;
 }
 
-export function HostView({ quiz, onExit }: HostViewProps) {
-  // Generate stable 6-digit room pin
+export function HostView({ quiz, initialRoomCode, onExit }: HostViewProps) {
+  // Check if there is already an active room for this quiz or roomCode to restore on refresh
   const [roomState, setRoomState] = useState<RoomState>(() => {
-    const pin = Math.floor(100000 + Math.random() * 900000).toString();
+    const active = storage.getActiveRoom();
+    if (active && (active.roomCode === initialRoomCode || active.quiz.id === quiz.id)) {
+      return active;
+    }
+
+    const pin = initialRoomCode && /^\d{4,8}$/.test(initialRoomCode)
+      ? initialRoomCode
+      : Math.floor(100000 + Math.random() * 900000).toString();
+
     const initial: RoomState = {
       roomCode: pin,
       quiz,
@@ -97,6 +108,11 @@ export function HostView({ quiz, onExit }: HostViewProps) {
       unsubscribe();
     };
   }, [roomState.roomCode, broadcastCurrentState]);
+
+  // Initial broadcast on mount so connected players sync up immediately
+  useEffect(() => {
+    broadcastCurrentState(roomState);
+  }, []);
 
   // Clean reaction stream
   useEffect(() => {
@@ -337,62 +353,124 @@ export function HostView({ quiz, onExit }: HostViewProps) {
   const currentQ = quiz.questions[roomState.currentQuestionIndex] || quiz.questions[0];
 
   return (
-    <div className="relative min-h-screen bg-slate-950 text-slate-100 font-sans">
+    <div className="relative min-h-screen bg-slate-950 text-slate-100 font-sans overflow-hidden">
       <ReactionsStream reactions={reactions} />
 
-      {showAnalyticsView ? (
-        <HostAnalytics
-          quiz={quiz}
-          players={roomState.players}
-          onBackToPodium={() => setShowAnalyticsView(false)}
-          onExit={onExit}
-          onPlayAgain={handlePlayAgain}
-        />
-      ) : roomState.status === 'lobby' ? (
-        <HostLobby
-          roomCode={roomState.roomCode}
-          quiz={quiz}
-          players={roomState.players}
-          onStartGame={handleStartGame}
-          onAddBots={handleAddBots}
-          onKickPlayer={handleKickPlayer}
-          onExit={onExit}
-        />
-      ) : roomState.status === 'question_active' ? (
-        <HostQuestionActive
-          question={currentQ}
-          questionIndex={roomState.currentQuestionIndex}
-          totalQuestions={quiz.questions.length}
-          timeRemaining={timeRemaining}
-          totalTime={currentQ.timeLimit}
-          players={roomState.players}
-          onTimeUpOrSkip={handleRevealAnswers}
-        />
-      ) : roomState.status === 'question_reveal' ? (
-        <HostQuestionReveal
-          question={currentQ}
-          questionIndex={roomState.currentQuestionIndex}
-          totalQuestions={quiz.questions.length}
-          players={roomState.players}
-          onProceedToLeaderboard={handleShowLeaderboard}
-        />
-      ) : roomState.status === 'leaderboard' ? (
-        <HostLeaderboard
-          players={roomState.players}
-          currentQuestionIndex={roomState.currentQuestionIndex}
-          totalQuestions={quiz.questions.length}
-          onNextQuestion={handleNextQuestion}
-          onShowPodium={handleShowPodium}
-        />
-      ) : roomState.status === 'podium' ? (
-        <HostPodium
-          quiz={quiz}
-          players={roomState.players}
-          onOpenAnalytics={() => setShowAnalyticsView(true)}
-          onPlayAgain={handlePlayAgain}
-          onExitToLibrary={onExit}
-        />
-      ) : null}
+      <AnimatePresence mode="wait" initial={false}>
+        {showAnalyticsView ? (
+          <motion.div
+            key="analytics"
+            custom="analytics"
+            variants={screenVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            className="w-full min-h-screen"
+          >
+            <HostAnalytics
+              quiz={quiz}
+              players={roomState.players}
+              onBackToPodium={() => setShowAnalyticsView(false)}
+              onExit={onExit}
+              onPlayAgain={handlePlayAgain}
+            />
+          </motion.div>
+        ) : roomState.status === 'lobby' ? (
+          <motion.div
+            key="lobby"
+            custom="default"
+            variants={screenVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            className="w-full min-h-screen"
+          >
+            <HostLobby
+              roomCode={roomState.roomCode}
+              quiz={quiz}
+              players={roomState.players}
+              onStartGame={handleStartGame}
+              onAddBots={handleAddBots}
+              onKickPlayer={handleKickPlayer}
+              onExit={onExit}
+            />
+          </motion.div>
+        ) : roomState.status === 'question_active' ? (
+          <motion.div
+            key={`question-active-${roomState.currentQuestionIndex}`}
+            custom="lobby-start"
+            variants={screenVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            className="w-full min-h-screen"
+          >
+            <HostQuestionActive
+              question={currentQ}
+              questionIndex={roomState.currentQuestionIndex}
+              totalQuestions={quiz.questions.length}
+              timeRemaining={timeRemaining}
+              totalTime={currentQ.timeLimit}
+              players={roomState.players}
+              onTimeUpOrSkip={handleRevealAnswers}
+            />
+          </motion.div>
+        ) : roomState.status === 'question_reveal' ? (
+          <motion.div
+            key={`question-reveal-${roomState.currentQuestionIndex}`}
+            custom="reveal"
+            variants={screenVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            className="w-full min-h-screen"
+          >
+            <HostQuestionReveal
+              question={currentQ}
+              questionIndex={roomState.currentQuestionIndex}
+              totalQuestions={quiz.questions.length}
+              players={roomState.players}
+              onProceedToLeaderboard={handleShowLeaderboard}
+            />
+          </motion.div>
+        ) : roomState.status === 'leaderboard' ? (
+          <motion.div
+            key={`leaderboard-${roomState.currentQuestionIndex}`}
+            custom="leaderboard"
+            variants={screenVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            className="w-full min-h-screen"
+          >
+            <HostLeaderboard
+              players={roomState.players}
+              currentQuestionIndex={roomState.currentQuestionIndex}
+              totalQuestions={quiz.questions.length}
+              onNextQuestion={handleNextQuestion}
+              onShowPodium={handleShowPodium}
+            />
+          </motion.div>
+        ) : roomState.status === 'podium' ? (
+          <motion.div
+            key="podium"
+            custom="podium"
+            variants={screenVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            className="w-full min-h-screen"
+          >
+            <HostPodium
+              quiz={quiz}
+              players={roomState.players}
+              onOpenAnalytics={() => setShowAnalyticsView(true)}
+              onPlayAgain={handlePlayAgain}
+              onExitToLibrary={onExit}
+            />
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
     </div>
   );
 }
