@@ -1,5 +1,6 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { AlertTriangle, RefreshCw, Home, ChevronDown } from 'lucide-react';
+import { translate } from '../../utils/i18n';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -63,9 +64,9 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
             </div>
 
             <div className="space-y-2">
-              <h2 className="text-xl sm:text-2xl font-black text-white">Что-то пошло не так</h2>
+              <h2 className="text-xl sm:text-2xl font-black text-white">{translate('common.error')}</h2>
               <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
-                Произошла непредвиденная ошибка в интерфейсе приложения. Мы сохранили данные ваших квизов в безопасности.
+                Произошла непредвиденная ошибка в интерфейсе приложения.
               </p>
             </div>
 
@@ -75,15 +76,15 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
                 className="w-full sm:w-auto px-5 py-3 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs sm:text-sm transition flex items-center justify-center gap-2 cursor-pointer border border-slate-700"
               >
                 <RefreshCw className="w-4 h-4" />
-                <span>Перезагрузить страницу</span>
+                <span>{translate('common.reset')}</span>
               </button>
 
               <button
                 onClick={this.handleGoHome}
-                className="w-full sm:w-auto px-6 py-3 rounded-2xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs sm:text-sm transition flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-amber-400/20"
+                className="w-full sm:w-auto px-6 py-3 rounded-2xl bg-[var(--accent-500)] hover:brightness-110 text-slate-950 font-black text-xs sm:text-sm transition flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-[var(--accent-glow)]"
               >
                 <Home className="w-4 h-4" />
-                <span>На главную</span>
+                <span>{translate('host.returnHome')}</span>
               </button>
             </div>
 
@@ -93,7 +94,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
                 onClick={this.toggleDetails}
                 className="text-[11px] text-slate-500 hover:text-slate-400 flex items-center gap-1 mx-auto cursor-pointer focus:outline-none"
               >
-                <span>{this.state.showDetails ? 'Скрыть технические детали' : 'Показать технические детали'}</span>
+                <span>{this.state.showDetails ? 'Hide details' : 'Show details'}</span>
                 <ChevronDown
                   className={`w-3.5 h-3.5 transition-transform ${this.state.showDetails ? 'rotate-180' : ''}`}
                 />

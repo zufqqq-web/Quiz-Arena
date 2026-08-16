@@ -1,19 +1,20 @@
 import { RoomTransport } from './RoomTransport';
 import { LocalBroadcastTransport } from './LocalBroadcastTransport';
+import { WebSocketTransport } from './WebSocketTransport';
 
 export * from './RoomTransport';
 export * from './LocalBroadcastTransport';
+export * from './WebSocketTransport';
 
 let activeTransport: RoomTransport | null = null;
 
 /**
  * Returns the currently active RoomTransport instance.
- * Defaults to LocalBroadcastTransport.
- * In the future, this factory can instantiate a WebSocketTransport or FirebaseTransport based on config.
+ * Defaults to WebSocketTransport (connecting to server for multi-device real-time sync).
  */
 export function getRoomTransport(): RoomTransport {
   if (!activeTransport) {
-    activeTransport = new LocalBroadcastTransport();
+    activeTransport = new WebSocketTransport();
   }
   return activeTransport;
 }

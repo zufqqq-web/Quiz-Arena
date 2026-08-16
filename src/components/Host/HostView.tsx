@@ -52,9 +52,15 @@ export function HostView({ quiz, initialRoomCode, onExit }: HostViewProps) {
 
   const botTimeoutsRef = useRef<NodeJS.Timeout[]>([]);
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const roomStateRef = useRef<RoomState>(roomState);
+
+  useEffect(() => {
+    roomStateRef.current = roomState;
+  }, [roomState]);
 
   // Broadcast current state to all connected tabs/players whenever roomState changes
   const broadcastCurrentState = useCallback((stateToBroadcast: RoomState) => {
+    console.log(`[HostView Broadcast HOST_STATE_UPDATE] room=${stateToBroadcast.roomCode}, status=${stateToBroadcast.status}, qIdx=${stateToBroadcast.currentQuestionIndex}`);
     syncBus.broadcast({
       type: 'HOST_STATE_UPDATE',
       state: stateToBroadcast,
@@ -64,43 +70,47 @@ export function HostView({ quiz, initialRoomCode, onExit }: HostViewProps) {
 
   // Listen to Sync Bus for player join requests, answers, reactions
   useEffect(() => {
+    const cleanRoomCode = String(roomState.roomCode).trim().toUpperCase();
+    syncBus.joinRoom(cleanRoomCode);
+
     const unsubscribe = syncBus.subscribe((msg: SyncMessage) => {
+      console.log('[HostView INCOMING sync_message]', msg.type, msg);
+
+      const msgRoom = String(
+        msg.type === 'HOST_STATE_UPDATE' ? msg.state?.roomCode : (msg as any).roomCode || ''
+      ).trim().toUpperCase();
+
+      if (msgRoom !== cleanRoomCode) return;
+
       if (msg.type === 'PLAYER_JOIN_REQUEST') {
-        if (msg.roomCode === roomState.roomCode) {
-          setRoomState((prev) => {
-            const updated = {
-              ...prev,
-              players: {
-                ...prev.players,
-                [msg.player.id]: msg.player,
+        setRoomState((prev) => {
+          const updated = {
+            ...prev,
+            players: {
+              ...prev.players,
+              [msg.player.id]: {
+                ...msg.player,
+                connected: true,
               },
-            };
-            broadcastCurrentState(updated);
-            return updated;
-          });
-        }
+            },
+          };
+          broadcastCurrentState(updated);
+          return updated;
+        });
       } else if (msg.type === 'REQUEST_ROOM_SYNC') {
-        if (msg.roomCode === roomState.roomCode) {
-          broadcastCurrentState(roomState);
-        }
+        broadcastCurrentState(roomStateRef.current);
       } else if (msg.type === 'PLAYER_LEAVE') {
-        if (msg.roomCode === roomState.roomCode) {
-          setRoomState((prev) => {
-            const nextPlayers = { ...prev.players };
-            delete nextPlayers[msg.playerId];
-            const updated = { ...prev, players: nextPlayers };
-            broadcastCurrentState(updated);
-            return updated;
-          });
-        }
+        setRoomState((prev) => {
+          const nextPlayers = { ...prev.players };
+          delete nextPlayers[msg.playerId];
+          const updated = { ...prev, players: nextPlayers };
+          broadcastCurrentState(updated);
+          return updated;
+        });
       } else if (msg.type === 'PLAYER_ANSWER_SUBMIT') {
-        if (msg.roomCode === roomState.roomCode) {
-          handlePlayerAnswer(msg.playerId, msg.answer);
-        }
+        handlePlayerAnswer(msg.playerId, msg.answer);
       } else if (msg.type === 'EMOJI_REACTION') {
-        if (msg.roomCode === roomState.roomCode) {
-          setReactions((prev) => [...prev.slice(-15), msg.reaction]);
-        }
+        setReactions((prev) => [...prev.slice(-15), msg.reaction]);
       }
     });
 
@@ -111,6 +121,8 @@ export function HostView({ quiz, initialRoomCode, onExit }: HostViewProps) {
 
   // Initial broadcast on mount so connected players sync up immediately
   useEffect(() => {
+    const cleanRoomCode = String(roomState.roomCode).trim().toUpperCase();
+    syncBus.joinRoom(cleanRoomCode);
     broadcastCurrentState(roomState);
   }, []);
 

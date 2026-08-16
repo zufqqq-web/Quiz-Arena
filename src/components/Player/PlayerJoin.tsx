@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Sparkles, ArrowRight, ArrowLeft, User, Hash } from 'lucide-react';
+import { ArrowRight, ArrowLeft, User, Hash } from 'lucide-react';
 import { sounds } from '../../utils/sound';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 interface PlayerJoinProps {
   initialPin?: string;
@@ -11,6 +12,7 @@ interface PlayerJoinProps {
 const AVATAR_OPTIONS = ['🦊', '🐼', '🐯', '🚀', '⚡', '🥑', '👾', '🐱', '🦄', '🦁', '🦉', '🎯'];
 
 export function PlayerJoin({ initialPin = '', onJoin, onCancel }: PlayerJoinProps) {
+  const { t } = useLanguage();
   const [pin, setPin] = useState(initialPin);
   const [nickname, setNickname] = useState('');
   const [avatar, setAvatar] = useState('🦊');
@@ -22,12 +24,12 @@ export function PlayerJoin({ initialPin = '', onJoin, onCancel }: PlayerJoinProp
     const cleanNick = nickname.trim();
 
     if (!cleanPin || cleanPin.length < 4) {
-      setError('Введите корректный PIN-код комнаты (от 4 цифр)');
+      setError(t('player.pinError'));
       sounds.playWrong();
       return;
     }
     if (!cleanNick) {
-      setError('Введите ваш никнейм для игры');
+      setError(t('player.nickError'));
       sounds.playWrong();
       return;
     }
@@ -39,7 +41,7 @@ export function PlayerJoin({ initialPin = '', onJoin, onCancel }: PlayerJoinProp
   return (
     <div id="player-join-screen" className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-center items-center p-4 select-none relative font-sans">
       {/* Subtle background glow */}
-      <div className="absolute w-72 h-72 bg-slate-800/30 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute w-72 h-72 bg-[var(--accent-glow)] rounded-full blur-3xl pointer-events-none" />
 
       <div className="w-full max-w-md bg-slate-900/90 border border-slate-800 rounded-3xl p-6 md:p-8 shadow-2xl backdrop-blur-xl relative z-10 animate-in fade-in zoom-in-95 duration-200">
         <div className="flex items-center justify-between mb-6">
@@ -49,10 +51,10 @@ export function PlayerJoin({ initialPin = '', onJoin, onCancel }: PlayerJoinProp
             className="text-xs text-slate-400 hover:text-white flex items-center gap-1 p-1 rounded-lg hover:bg-slate-800 transition cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span>Назад</span>
+            <span>{t('common.back')}</span>
           </button>
           <span className="text-xs font-bold uppercase tracking-widest text-slate-400">
-            Вход в игру
+            {t('player.joinTitle')}
           </span>
           <div className="w-10" />
         </div>
@@ -62,7 +64,7 @@ export function PlayerJoin({ initialPin = '', onJoin, onCancel }: PlayerJoinProp
           <div>
             <label className="text-xs font-semibold uppercase tracking-wider text-slate-400 block mb-1.5 flex items-center gap-1.5">
               <Hash className="w-3.5 h-3.5" />
-              <span>PIN-код игры</span>
+              <span>{t('player.pinLabel')}</span>
             </label>
             <input
               id="input-player-pin"
@@ -74,8 +76,8 @@ export function PlayerJoin({ initialPin = '', onJoin, onCancel }: PlayerJoinProp
                 setPin(e.target.value);
                 setError('');
               }}
-              placeholder="Например: 482910"
-              className="w-full bg-slate-950 border border-slate-700 rounded-2xl px-4 py-3.5 text-center text-2xl font-mono font-bold tracking-widest text-white placeholder:text-slate-600 focus:outline-none focus:border-slate-400 transition"
+              placeholder="482910"
+              className="w-full bg-slate-950 border border-slate-700 rounded-2xl px-4 py-3.5 text-center text-2xl font-mono font-bold tracking-widest text-white placeholder:text-slate-600 focus:outline-none focus:border-[var(--accent-400)] transition"
               autoFocus
             />
           </div>
@@ -84,7 +86,7 @@ export function PlayerJoin({ initialPin = '', onJoin, onCancel }: PlayerJoinProp
           <div>
             <label className="text-xs font-semibold uppercase tracking-wider text-slate-400 block mb-1.5 flex items-center gap-1.5">
               <User className="w-3.5 h-3.5" />
-              <span>Ваш никнейм</span>
+              <span>{t('player.nickLabel')}</span>
             </label>
             <input
               id="input-player-nickname"
@@ -95,15 +97,15 @@ export function PlayerJoin({ initialPin = '', onJoin, onCancel }: PlayerJoinProp
                 setNickname(e.target.value);
                 setError('');
               }}
-              placeholder="Как вас зовут?"
-              className="w-full bg-slate-950 border border-slate-700 rounded-2xl px-4 py-3 text-base font-semibold text-white placeholder:text-slate-600 focus:outline-none focus:border-slate-400 transition"
+              placeholder={t('player.nickPlaceholder')}
+              className="w-full bg-slate-950 border border-slate-700 rounded-2xl px-4 py-3 text-base font-semibold text-white placeholder:text-slate-600 focus:outline-none focus:border-[var(--accent-400)] transition"
             />
           </div>
 
           {/* Avatar selector */}
           <div>
             <label className="text-xs font-semibold uppercase tracking-wider text-slate-400 block mb-2">
-              Выберите аватар
+              {t('player.avatarLabel')}
             </label>
             <div className="grid grid-cols-6 gap-2">
               {AVATAR_OPTIONS.map((emoji) => (
@@ -116,7 +118,7 @@ export function PlayerJoin({ initialPin = '', onJoin, onCancel }: PlayerJoinProp
                   }}
                   className={`h-11 rounded-xl text-xl flex items-center justify-center border transition cursor-pointer ${
                     avatar === emoji
-                      ? 'bg-slate-800 border-slate-300 ring-2 ring-slate-400 scale-105'
+                      ? 'bg-slate-800 border-[var(--accent-400)] ring-2 ring-[var(--accent-400)]/40 scale-105'
                       : 'bg-slate-950 border-slate-800 hover:bg-slate-800/60'
                   }`}
                 >
@@ -135,9 +137,9 @@ export function PlayerJoin({ initialPin = '', onJoin, onCancel }: PlayerJoinProp
           <button
             id="btn-submit-join"
             type="submit"
-            className="w-full py-3.5 rounded-2xl bg-slate-100 hover:bg-white text-slate-950 font-bold text-sm transition flex items-center justify-center gap-2 shadow-xl cursor-pointer"
+            className="w-full py-3.5 rounded-2xl bg-[var(--accent-500)] hover:brightness-110 active:brightness-90 text-slate-950 font-bold text-sm transition flex items-center justify-center gap-2 shadow-xl shadow-[var(--accent-glow)] cursor-pointer"
           >
-            <span>Присоединиться к битве</span>
+            <span>{t('player.joinBtn')}</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </form>

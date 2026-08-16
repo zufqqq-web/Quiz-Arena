@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Player, RoomState, PlayerAnswer, GameReaction, PowerUpType } from '../../types';
 import { syncBus, SyncMessage } from '../../utils/syncBus';
@@ -22,7 +22,7 @@ export function PlayerView({ initialPin = '', onExit }: PlayerViewProps) {
   // Restore player from stored session if present and matching
   const [player, setPlayer] = useState<Player | null>(() => {
     const saved = storage.getPlayerSession();
-    if (saved && (!initialPin || saved.roomCode === initialPin)) {
+    if (saved && (!initialPin || String(saved.roomCode).trim().toUpperCase() === String(initialPin).trim().toUpperCase())) {
       return saved.player;
     }
     return null;
@@ -30,15 +30,15 @@ export function PlayerView({ initialPin = '', onExit }: PlayerViewProps) {
 
   const [roomCode, setRoomCode] = useState<string>(() => {
     const saved = storage.getPlayerSession();
-    if (saved && (!initialPin || saved.roomCode === initialPin)) {
-      return saved.roomCode;
+    if (saved && (!initialPin || String(saved.roomCode).trim().toUpperCase() === String(initialPin).trim().toUpperCase())) {
+      return String(saved.roomCode).trim().toUpperCase();
     }
-    return initialPin;
+    return String(initialPin || '').trim().toUpperCase();
   });
 
   const [roomState, setRoomState] = useState<RoomState | null>(() => {
     const active = storage.getActiveRoom();
-    if (active && (!initialPin || active.roomCode === initialPin)) {
+    if (active && (!initialPin || String(active.roomCode).trim().toUpperCase() === String(initialPin).trim().toUpperCase())) {
       return active;
     }
     return null;
@@ -47,6 +47,18 @@ export function PlayerView({ initialPin = '', onExit }: PlayerViewProps) {
   const [reactions, setReactions] = useState<GameReaction[]>([]);
   const [hasAnsweredCurrent, setHasAnsweredCurrent] = useState<boolean>(false);
 
+  // Refs for permanent subscription closure safety
+  const playerRef = useRef<Player | null>(player);
+  const roomCodeRef = useRef<string>(roomCode);
+
+  useEffect(() => {
+    playerRef.current = player;
+  }, [player]);
+
+  useEffect(() => {
+    roomCodeRef.current = roomCode;
+  }, [roomCode]);
+
   // Sync player session to storage
   useEffect(() => {
     if (player && roomCode) {
@@ -54,20 +66,38 @@ export function PlayerView({ initialPin = '', onExit }: PlayerViewProps) {
     }
   }, [player, roomCode]);
 
-  // Listen to Sync Bus
+  // Permanent subscription to Sync Bus for entire component lifecycle
   useEffect(() => {
     const unsubscribe = syncBus.subscribe((msg: SyncMessage) => {
+      // Diagnostic logging immediately upon receiving any sync message
+      console.log('[PlayerView INCOMING sync_message]', msg.type, msg);
+
+      const cleanCode = (c: any) => String(c || '').trim().toUpperCase();
+      const currentRoom = cleanCode(roomCodeRef.current);
+      const curPlayer = playerRef.current;
+
       if (msg.type === 'HOST_STATE_UPDATE') {
-        if (roomCode && msg.state.roomCode === roomCode) {
+        const msgRoom = cleanCode(msg.state?.roomCode);
+        const isPlayerInState = curPlayer && msg.state?.players && !!msg.state.players[curPlayer.id];
+        const isRoomMatch = currentRoom && msgRoom && currentRoom === msgRoom;
+
+        console.log(`[PlayerView HOST_STATE_UPDATE] msgRoom=${msgRoom}, currentRoom=${currentRoom}, isMatch=${isRoomMatch || isPlayerInState}, status=${msg.state?.status}, qIdx=${msg.state?.currentQuestionIndex}`);
+
+        if (isRoomMatch || isPlayerInState) {
+          // Unconditionally apply authoritative host state
           setRoomState(msg.state);
+          if (msgRoom && !currentRoom) {
+            setRoomCode(msgRoom);
+          }
 
           // Update local player state from host's authoritative state if present
-          if (player && msg.state.players[player.id]) {
-            setPlayer(msg.state.players[player.id]);
+          if (curPlayer && msg.state?.players?.[curPlayer.id]) {
+            setPlayer(msg.state.players[curPlayer.id]);
           }
         }
       } else if (msg.type === 'HOST_KICK_PLAYER') {
-        if (roomCode && msg.roomCode === roomCode && player && msg.playerId === player.id) {
+        const msgRoom = cleanCode(msg.roomCode);
+        if (currentRoom === msgRoom && curPlayer && msg.playerId === curPlayer.id) {
           sounds.playWrong();
           alert('Вы были удалены из комнаты ведущим.');
           setPlayer(null);
@@ -75,7 +105,8 @@ export function PlayerView({ initialPin = '', onExit }: PlayerViewProps) {
           storage.clearPlayerSession();
         }
       } else if (msg.type === 'EMOJI_REACTION') {
-        if (roomCode && msg.roomCode === roomCode) {
+        const msgRoom = cleanCode(msg.roomCode);
+        if (currentRoom === msgRoom) {
           setReactions((prev) => [...prev.slice(-15), msg.reaction]);
         }
       }
@@ -84,29 +115,33 @@ export function PlayerView({ initialPin = '', onExit }: PlayerViewProps) {
     return () => {
       unsubscribe();
     };
-  }, [roomCode, player]);
+  }, []);
 
-  // Request sync on mount if roomCode exists
+  // Request sync and ensure room join on mount / roomCode change
   useEffect(() => {
-    if (roomCode && player) {
-      syncBus.broadcast({
-        type: 'REQUEST_ROOM_SYNC',
-        roomCode,
-        playerId: player.id,
-      });
+    if (roomCode) {
+      const cleanPin = String(roomCode).trim().toUpperCase();
+      syncBus.joinRoom(cleanPin, player?.id);
+
+      if (player) {
+        syncBus.broadcast({
+          type: 'REQUEST_ROOM_SYNC',
+          roomCode: cleanPin,
+          playerId: player.id,
+        });
+      }
 
       // Also check local active room
       const active = storage.getActiveRoom();
-      if (active && active.roomCode === roomCode) {
+      if (active && String(active.roomCode).trim().toUpperCase() === cleanPin) {
         setRoomState(active);
       }
     }
-  }, [roomCode, player]);
+  }, [roomCode, player?.id]);
 
   // Reset hasAnswered on question change
   useEffect(() => {
     if (roomState?.status === 'question_active') {
-      // Check if player already answered in restored state
       const currentAns = player?.answers?.[roomState.currentQuestionIndex];
       setHasAnsweredCurrent(!!currentAns);
     }
@@ -114,6 +149,7 @@ export function PlayerView({ initialPin = '', onExit }: PlayerViewProps) {
 
   // Join handler
   const handleJoin = (enteredPin: string, nickname: string, avatarEmoji: string) => {
+    const cleanPin = String(enteredPin).trim().toUpperCase();
     const newPlayer: Player = {
       id: 'player-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
       nickname,
@@ -134,19 +170,22 @@ export function PlayerView({ initialPin = '', onExit }: PlayerViewProps) {
     };
 
     setPlayer(newPlayer);
-    setRoomCode(enteredPin);
-    storage.savePlayerSession({ roomCode: enteredPin, player: newPlayer });
+    setRoomCode(cleanPin);
+    storage.savePlayerSession({ roomCode: cleanPin, player: newPlayer });
+
+    // Explicitly join room on server socket
+    syncBus.joinRoom(cleanPin, newPlayer.id);
 
     // Broadcast join request to Host
     syncBus.broadcast({
       type: 'PLAYER_JOIN_REQUEST',
-      roomCode: enteredPin,
+      roomCode: cleanPin,
       player: newPlayer,
     });
 
     // Check if host is in local storage
     const active = storage.getActiveRoom();
-    if (active && active.roomCode === enteredPin) {
+    if (active && String(active.roomCode).trim().toUpperCase() === cleanPin) {
       setRoomState(active);
     }
   };
@@ -323,9 +362,11 @@ export function PlayerView({ initialPin = '', onExit }: PlayerViewProps) {
   // Leave room
   const handleLeave = () => {
     if (player && roomCode) {
+      const cleanPin = String(roomCode).trim().toUpperCase();
+      syncBus.leaveRoom(cleanPin);
       syncBus.broadcast({
         type: 'PLAYER_LEAVE',
-        roomCode,
+        roomCode: cleanPin,
         playerId: player.id,
       });
     }

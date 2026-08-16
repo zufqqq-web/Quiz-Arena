@@ -8,8 +8,10 @@ import { QuestionSettings } from './QuestionSettings';
 import { QuizMetaModal } from './QuizMetaModal';
 import { AITemplateModal } from './AITemplateModal';
 import { AIChatWidget } from './AIChatWidget';
-import { Play, Settings, Sparkles, ArrowLeft, Save, Download, AlertCircle, LayoutGrid, Sliders, Edit3 } from 'lucide-react';
+import { AISettingsModal } from '../Common/AISettingsModal';
+import { Play, Settings, Sparkles, ArrowLeft, Save, Download, AlertCircle, LayoutGrid, Sliders, Edit3, Bot } from 'lucide-react';
 import { sounds } from '../../utils/sound';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 interface QuizEditorProps {
   quizId: string;
@@ -18,10 +20,12 @@ interface QuizEditorProps {
 }
 
 export function QuizEditor({ quizId, onBack, onLaunchQuiz }: QuizEditorProps) {
+  const { t } = useLanguage();
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [selectedSlideIndex, setSelectedSlideIndex] = useState(0);
   const [isMetaModalOpen, setIsMetaModalOpen] = useState(false);
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
+  const [isAISettingsOpen, setIsAISettingsOpen] = useState(false);
   const [hasSaved, setHasSaved] = useState(false);
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
   const [showValidationAlert, setShowValidationAlert] = useState(false);
@@ -89,7 +93,7 @@ export function QuizEditor({ quizId, onBack, onLaunchQuiz }: QuizEditorProps) {
     const duplicate: Question = {
       ...original,
       id: 'q-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
-      title: `${original.title} (Копия)`,
+      title: `${original.title} (Copy)`,
       options: original.options.map((o) => ({
         ...o,
         id: 'opt-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
@@ -139,7 +143,7 @@ export function QuizEditor({ quizId, onBack, onLaunchQuiz }: QuizEditorProps) {
   if (!quiz) {
     return (
       <div className="flex h-screen items-center justify-center bg-slate-950 text-slate-400">
-        Загрузка редактора квиза...
+        {t('common.loading')}
       </div>
     );
   }
@@ -156,11 +160,11 @@ export function QuizEditor({ quizId, onBack, onLaunchQuiz }: QuizEditorProps) {
               sounds.playClick();
               onBack();
             }}
-            aria-label="Назад к библиотеке"
+            aria-label={t('common.back')}
             className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white px-2.5 py-1.5 rounded-xl hover:bg-slate-800 transition cursor-pointer shrink-0"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span className="hidden sm:inline">Назад</span>
+            <span className="hidden sm:inline">{t('common.back')}</span>
           </button>
 
           <div className="h-4 w-px bg-slate-800 hidden sm:block shrink-0" />
@@ -172,13 +176,13 @@ export function QuizEditor({ quizId, onBack, onLaunchQuiz }: QuizEditorProps) {
               setIsMetaModalOpen(true);
             }}
             className="flex items-center gap-2 hover:bg-slate-800/80 px-2.5 py-1.5 rounded-xl cursor-pointer transition max-w-xs sm:max-w-sm truncate"
-            title="Нажмите для настройки названия и обложки"
+            title={t('editor.quizSettings')}
           >
             <span className="text-lg sm:text-xl shrink-0">{quiz.coverEmoji}</span>
             <div className="flex flex-col min-w-0 truncate">
               <span className="text-xs sm:text-sm font-bold text-white truncate">{quiz.title}</span>
               <span className="text-[10px] text-slate-400 truncate">
-                {quiz.category} • {quiz.questions.length} вопр.
+                {quiz.category} • {quiz.questions.length} Qs
               </span>
             </div>
             <Settings className="w-3.5 h-3.5 text-slate-500 hover:text-slate-300 ml-1 shrink-0 hidden sm:block" />
@@ -187,7 +191,7 @@ export function QuizEditor({ quizId, onBack, onLaunchQuiz }: QuizEditorProps) {
           {hasSaved && (
             <span className="text-[11px] text-emerald-400 bg-emerald-950/60 border border-emerald-800/50 px-2 py-0.5 rounded-full flex items-center gap-1 animate-pulse shrink-0 hidden md:flex">
               <Save className="w-3 h-3" />
-              <span>Сохранено</span>
+              <span>{t('editor.saveSuccess')}</span>
             </span>
           )}
         </div>
@@ -199,18 +203,30 @@ export function QuizEditor({ quizId, onBack, onLaunchQuiz }: QuizEditorProps) {
               sounds.playClick();
               setIsTemplateModalOpen(true);
             }}
-            className="flex items-center gap-1.5 text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700 px-2.5 sm:px-3 py-1.5 rounded-xl transition cursor-pointer"
-            title="Добавить готовые наборы вопросов"
+            className="flex items-center gap-1.5 text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-[var(--accent-300)] border border-slate-700 px-2.5 sm:px-3 py-1.5 rounded-xl transition cursor-pointer"
+            title={t('editor.aiPack')}
           >
-            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-            <span className="hidden sm:inline">Шаблоны вопросов</span>
+            <Sparkles className="w-3.5 h-3.5 text-[var(--accent-400)]" />
+            <span className="hidden sm:inline">{t('editor.aiPack')}</span>
+          </button>
+
+          <button
+            onClick={() => {
+              sounds.playClick();
+              setIsAISettingsOpen(true);
+            }}
+            className="p-2 text-slate-400 hover:text-indigo-300 hover:bg-slate-800 rounded-xl transition cursor-pointer"
+            title={t('common.aiSettings')}
+            aria-label={t('common.aiSettings')}
+          >
+            <Bot className="w-4 h-4" />
           </button>
 
           <button
             onClick={() => storage.exportQuizAsJSON(quiz)}
             className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition cursor-pointer hidden md:block"
-            title="Экспорт квиза в JSON"
-            aria-label="Экспорт квиза в JSON"
+            title={t('library.exportJson')}
+            aria-label={t('library.exportJson')}
           >
             <Download className="w-4 h-4" />
           </button>
@@ -220,10 +236,10 @@ export function QuizEditor({ quizId, onBack, onLaunchQuiz }: QuizEditorProps) {
           <button
             id="btn-host-start-editor"
             onClick={handleLaunchWithValidation}
-            className="flex items-center gap-1.5 sm:gap-2 text-xs font-bold bg-amber-400 hover:bg-amber-300 active:bg-amber-500 text-slate-950 px-3 sm:px-4 py-2 rounded-xl transition shadow-lg shadow-amber-400/20 cursor-pointer"
+            className="flex items-center gap-1.5 sm:gap-2 text-xs font-bold bg-[var(--accent-500)] hover:brightness-110 active:brightness-90 text-slate-950 px-3 sm:px-4 py-2 rounded-xl transition shadow-lg shadow-[var(--accent-glow)] cursor-pointer"
           >
             <Play className="w-4 h-4 fill-slate-950" />
-            <span>Запустить игру</span>
+            <span>{t('editor.hostBtn')}</span>
           </button>
         </div>
       </header>
@@ -237,11 +253,11 @@ export function QuizEditor({ quizId, onBack, onLaunchQuiz }: QuizEditorProps) {
         >
           <div className="flex items-center gap-2">
             <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
-            <span className="font-semibold">Исправьте ошибки перед запуском:</span>
+            <span className="font-semibold">{t('common.error')}:</span>
             <span className="truncate max-w-md">{validationErrors[0].message}</span>
             {validationErrors.length > 1 && (
               <span className="text-[10px] bg-rose-900 px-1.5 py-0.5 rounded font-mono">
-                +{validationErrors.length - 1} еще
+                +{validationErrors.length - 1} more
               </span>
             )}
           </div>
@@ -249,39 +265,39 @@ export function QuizEditor({ quizId, onBack, onLaunchQuiz }: QuizEditorProps) {
             onClick={() => setShowValidationAlert(false)}
             className="text-rose-400 hover:text-white text-xs underline cursor-pointer ml-4"
           >
-            Закрыть
+            {t('common.close')}
           </button>
         </div>
       )}
 
-      {/* Mobile Sub-Navigation Tabs (Visible on < lg screens) */}
+      {/* Mobile Sub-Navigation Tabs */}
       <div className="lg:hidden bg-slate-900/95 border-b border-slate-800 px-3 py-1.5 flex items-center justify-around text-xs shrink-0">
         <button
           onClick={() => setMobileTab('slides')}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-semibold transition cursor-pointer ${
-            mobileTab === 'slides' ? 'bg-slate-800 text-amber-300' : 'text-slate-400 hover:text-white'
+            mobileTab === 'slides' ? 'bg-slate-800 text-[var(--accent-300)]' : 'text-slate-400 hover:text-white'
           }`}
         >
           <LayoutGrid className="w-3.5 h-3.5" />
-          <span>Слайды ({quiz.questions.length})</span>
+          <span>{t('editor.slides')} ({quiz.questions.length})</span>
         </button>
         <button
           onClick={() => setMobileTab('canvas')}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-semibold transition cursor-pointer ${
-            mobileTab === 'canvas' ? 'bg-slate-800 text-amber-300' : 'text-slate-400 hover:text-white'
+            mobileTab === 'canvas' ? 'bg-slate-800 text-[var(--accent-300)]' : 'text-slate-400 hover:text-white'
           }`}
         >
           <Edit3 className="w-3.5 h-3.5" />
-          <span>Вопрос #{selectedSlideIndex + 1}</span>
+          <span>#{selectedSlideIndex + 1}</span>
         </button>
         <button
           onClick={() => setMobileTab('settings')}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-semibold transition cursor-pointer ${
-            mobileTab === 'settings' ? 'bg-slate-800 text-amber-300' : 'text-slate-400 hover:text-white'
+            mobileTab === 'settings' ? 'bg-slate-800 text-[var(--accent-300)]' : 'text-slate-400 hover:text-white'
           }`}
         >
           <Sliders className="w-3.5 h-3.5" />
-          <span>Параметры</span>
+          <span>{t('editor.quizSettings')}</span>
         </button>
       </div>
 
@@ -339,7 +355,12 @@ export function QuizEditor({ quizId, onBack, onLaunchQuiz }: QuizEditorProps) {
         onApplyQuestions={handleApplyTemplates}
       />
 
-      {/* AI Bot Assistant Chat Widget (Bottom Right) */}
+      <AISettingsModal
+        isOpen={isAISettingsOpen}
+        onClose={() => setIsAISettingsOpen(false)}
+      />
+
+      {/* AI Bot Assistant Chat Widget */}
       <AIChatWidget
         quizTitle={quiz.title}
         onApplyQuestions={handleApplyTemplates}

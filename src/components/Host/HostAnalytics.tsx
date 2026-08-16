@@ -1,6 +1,7 @@
 import { Player, Quiz } from '../../types';
-import { ArrowLeft, Download, CheckCircle2, XCircle, Clock, Award, BarChart3, HelpCircle, FileSpreadsheet, RotateCcw } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Clock, Award, BarChart3, HelpCircle, FileSpreadsheet, RotateCcw } from 'lucide-react';
 import { sounds } from '../../utils/sound';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 interface HostAnalyticsProps {
   quiz: Quiz;
@@ -17,6 +18,7 @@ export function HostAnalytics({
   onExit,
   onPlayAgain,
 }: HostAnalyticsProps) {
+  const { t } = useLanguage();
   const playerList = Object.values(players);
   const totalPlayers = playerList.length;
   const totalQuestions = quiz.questions.length;
@@ -85,7 +87,7 @@ export function HostAnalytics({
           `${correctAnswers}/${totalQuestions}`,
           `${accuracy}%`,
           p.highestStreak || p.streak || 0,
-          p.isBot ? 'Бот' : 'Игрок',
+          p.isBot ? 'Bot' : 'Player',
         ];
       }),
     ];
@@ -111,7 +113,7 @@ export function HostAnalytics({
               onBackToPodium();
             }}
             className="p-2 rounded-xl bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-400 hover:text-white transition cursor-pointer"
-            title="Назад к подиуму"
+            title={t('common.back')}
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
@@ -120,7 +122,7 @@ export function HostAnalytics({
               <span className="text-xl">{quiz.coverEmoji}</span>
               <h1 className="text-xl font-bold text-white">{quiz.title}</h1>
             </div>
-            <p className="text-xs text-slate-400">Аналитика прохождения и детальный разбор аудитории</p>
+            <p className="text-xs text-slate-400">{t('host.analyticsTitle')}</p>
           </div>
         </div>
 
@@ -130,7 +132,7 @@ export function HostAnalytics({
             className="flex items-center gap-1.5 text-xs font-semibold bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-800 px-3.5 py-2 rounded-xl transition cursor-pointer"
           >
             <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
-            <span>Экспорт CSV</span>
+            <span>{t('host.exportCsv')}</span>
           </button>
 
           <button
@@ -141,7 +143,7 @@ export function HostAnalytics({
             className="flex items-center gap-1.5 text-xs font-semibold bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-800 px-3.5 py-2 rounded-xl transition cursor-pointer"
           >
             <RotateCcw className="w-4 h-4" />
-            <span>Сыграть снова</span>
+            <span>{t('host.playAgain')}</span>
           </button>
 
           <button
@@ -151,7 +153,7 @@ export function HostAnalytics({
             }}
             className="flex items-center gap-1.5 text-xs font-bold bg-slate-100 hover:bg-white text-slate-950 px-4 py-2 rounded-xl transition cursor-pointer"
           >
-            <span>В главное меню</span>
+            <span>{t('host.returnHome')}</span>
           </button>
         </div>
       </div>
@@ -162,53 +164,53 @@ export function HostAnalytics({
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4">
             <div className="text-xs text-slate-400 font-semibold mb-1 flex items-center justify-between">
-              <span>Общая точность</span>
+              <span>{t('host.totalAccuracy')}</span>
               <CheckCircle2 className="w-4 h-4 text-emerald-400" />
             </div>
             <div className="text-3xl font-black font-mono text-emerald-400">
               {overallAccuracy}%
             </div>
             <div className="text-[11px] text-slate-500 mt-1">
-              {totalCorrectCount} из {totalAnswersCount} ответов верные
+              {totalCorrectCount} / {totalAnswersCount} {t('common.correct') || 'correct'}
             </div>
           </div>
 
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4">
             <div className="text-xs text-slate-400 font-semibold mb-1 flex items-center justify-between">
-              <span>Самый сложный вопрос</span>
+              <span>{t('host.hardestQuestion')}</span>
               <HelpCircle className="w-4 h-4 text-red-400" />
             </div>
             <div className="text-sm font-bold text-white line-clamp-1">
-              {hardestQuestion ? `Вопрос #${hardestQuestion.index}` : '—'}
+              {hardestQuestion ? `#${hardestQuestion.index}` : '—'}
             </div>
             <div className="text-[11px] text-red-400 font-medium mt-1">
-              {hardestQuestion ? `Только ${hardestQuestion.accuracyPct}% верных ответов` : '—'}
+              {hardestQuestion ? `${hardestQuestion.accuracyPct}%` : '—'}
             </div>
           </div>
 
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4">
             <div className="text-xs text-slate-400 font-semibold mb-1 flex items-center justify-between">
-              <span>Среднее время ответа</span>
+              <span>{t('host.avgResponseTime')}</span>
               <Clock className="w-4 h-4 text-blue-400" />
             </div>
             <div className="text-3xl font-black font-mono text-white">
-              {avgOverallResponseTimeSec}с
+              {avgOverallResponseTimeSec}s
             </div>
             <div className="text-[11px] text-slate-500 mt-1">
-              Высокая скорость реакции игроков
+              {t('common.seconds')}
             </div>
           </div>
 
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4">
             <div className="text-xs text-slate-400 font-semibold mb-1 flex items-center justify-between">
-              <span>Участники квиза</span>
-              <Award className="w-4 h-4 text-amber-400" />
+              <span>{t('host.participants')}</span>
+              <Award className="w-4 h-4 text-[var(--accent-400)]" />
             </div>
-            <div className="text-3xl font-black font-mono text-amber-400">
+            <div className="text-3xl font-black font-mono text-[var(--accent-400)]">
               {totalPlayers}
             </div>
             <div className="text-[11px] text-slate-500 mt-1">
-              Завершили все {totalQuestions} раундов
+              {totalQuestions} {t('aiTemplate.questionsSuffix')}
             </div>
           </div>
         </div>
@@ -218,10 +220,10 @@ export function HostAnalytics({
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-base font-bold text-white flex items-center gap-2">
               <BarChart3 className="w-4 h-4 text-slate-400" />
-              <span>Разбор вопросов и сложность</span>
+              <span>{t('host.questionStats')}</span>
             </h2>
             <span className="text-xs text-slate-500">
-              {quiz.questions.length} вопросов в тесте
+              {quiz.questions.length} {t('aiTemplate.questionsSuffix')}
             </span>
           </div>
 
@@ -230,11 +232,10 @@ export function HostAnalytics({
               <thead>
                 <tr className="border-b border-slate-800 text-slate-400 font-semibold uppercase tracking-wider">
                   <th className="pb-3 pl-2">#</th>
-                  <th className="pb-3">Вопрос</th>
-                  <th className="pb-3">Тип</th>
-                  <th className="pb-3">Точность</th>
-                  <th className="pb-3">Ср. время</th>
-                  <th className="pb-3 pr-2 text-right">Верно / Всего</th>
+                  <th className="pb-3">{t('editor.questionType')}</th>
+                  <th className="pb-3">{t('host.accuracy')}</th>
+                  <th className="pb-3">{t('host.avgResponseTime')}</th>
+                  <th className="pb-3 pr-2 text-right">{t('common.correct')} / Total</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/60">
@@ -243,9 +244,6 @@ export function HostAnalytics({
                     <td className="py-3.5 pl-2 font-mono font-bold text-slate-500">{q.index}</td>
                     <td className="py-3.5 font-medium text-slate-200 max-w-xs truncate pr-4">
                       {q.title}
-                    </td>
-                    <td className="py-3.5 text-slate-400 font-mono">
-                      {q.type}
                     </td>
                     <td className="py-3.5">
                       <div className="flex items-center gap-2">
@@ -275,7 +273,7 @@ export function HostAnalytics({
                       </div>
                     </td>
                     <td className="py-3.5 font-mono text-slate-300">
-                      {q.avgTimeSec} сек
+                      {q.avgTimeSec}s
                     </td>
                     <td className="py-3.5 pr-2 text-right font-mono font-semibold text-slate-300">
                       {q.correctCount} / {q.totalCount}
@@ -291,21 +289,21 @@ export function HostAnalytics({
         <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 md:p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-base font-bold text-white flex items-center gap-2">
-              <Award className="w-4 h-4 text-amber-400" />
-              <span>Итоговый табель игроков</span>
+              <Award className="w-4 h-4 text-[var(--accent-400)]" />
+              <span>{t('host.playerRankings')}</span>
             </h2>
-            <span className="text-xs text-slate-500">{rankedPlayers.length} игроков</span>
+            <span className="text-xs text-slate-500">{rankedPlayers.length} {t('host.participants')}</span>
           </div>
 
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead>
                 <tr className="border-b border-slate-800 text-slate-400 font-semibold uppercase tracking-wider">
-                  <th className="pb-3 pl-2">Место</th>
-                  <th className="pb-3">Игрок</th>
-                  <th className="pb-3">Точность</th>
-                  <th className="pb-3">Макс. стрик</th>
-                  <th className="pb-3 pr-2 text-right">Итоговые баллы</th>
+                  <th className="pb-3 pl-2">#</th>
+                  <th className="pb-3">{t('player.joinTitle')}</th>
+                  <th className="pb-3">{t('host.accuracy')}</th>
+                  <th className="pb-3">Streak</th>
+                  <th className="pb-3 pr-2 text-right">{t('player.score')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/60">
@@ -318,7 +316,7 @@ export function HostAnalytics({
                         <span
                           className={`inline-block w-6 h-6 rounded-lg text-center leading-6 text-xs font-mono font-bold ${
                             idx === 0
-                              ? 'bg-amber-400 text-slate-950 font-black'
+                              ? 'bg-[var(--accent-500)] text-slate-950 font-black'
                               : idx === 1
                               ? 'bg-slate-300 text-slate-950'
                               : idx === 2
@@ -349,7 +347,7 @@ export function HostAnalytics({
                         🔥 x{p.highestStreak || p.streak || 0}
                       </td>
                       <td className="py-3.5 pr-2 text-right font-mono font-black text-sm text-white">
-                        {p.score.toLocaleString('ru-RU')}
+                        {p.score.toLocaleString()}
                       </td>
                     </tr>
                   );

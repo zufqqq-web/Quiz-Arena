@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Quiz } from '../../types';
 import { X, Check } from 'lucide-react';
 import { sounds } from '../../utils/sound';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 interface QuizMetaModalProps {
   quiz: Quiz;
@@ -14,6 +15,7 @@ const EMOJI_PRESETS = ['🎯', '💻', '🚀', '🍿', '🧠', '⚡', '🏆', '�
 const CATEGORY_PRESETS = ['Общий', 'Технологии', 'Наука', 'Развлечения', 'Кино & Музыка', 'Бизнес', 'Школа'];
 
 export function QuizMetaModal({ quiz, isOpen, onClose, onSave }: QuizMetaModalProps) {
+  const { t } = useLanguage();
   const [title, setTitle] = useState(quiz.title);
   const [description, setDescription] = useState(quiz.description);
   const [category, setCategory] = useState(quiz.category);
@@ -49,9 +51,9 @@ export function QuizMetaModal({ quiz, isOpen, onClose, onSave }: QuizMetaModalPr
     e.preventDefault();
     sounds.playClick();
     onSave({
-      title: title.trim() || 'Без названия',
+      title: title.trim() || t('quizMeta.quizTitlePlaceholder'),
       description: description.trim(),
-      category: category.trim() || 'Общий',
+      category: category.trim() || t('common.general'),
       coverEmoji: coverEmoji || '🎯',
     });
     onClose();
@@ -67,7 +69,7 @@ export function QuizMetaModal({ quiz, isOpen, onClose, onSave }: QuizMetaModalPr
       <div className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150 my-auto">
         <div className="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between">
           <h3 id="quiz-meta-title" className="text-base font-bold text-white">
-            Настройки и метаданные квиза
+            {t('quizMeta.modalTitle')}
           </h3>
           <button
             ref={closeButtonRef}
@@ -75,7 +77,7 @@ export function QuizMetaModal({ quiz, isOpen, onClose, onSave }: QuizMetaModalPr
               sounds.playClick();
               onClose();
             }}
-            aria-label="Закрыть настройки"
+            aria-label={t('common.close')}
             className="p-2 rounded-xl hover:bg-slate-800 text-slate-400 hover:text-white transition cursor-pointer"
           >
             <X className="w-5 h-5" />
@@ -85,7 +87,7 @@ export function QuizMetaModal({ quiz, isOpen, onClose, onSave }: QuizMetaModalPr
         <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4">
           <div>
             <label className="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-2">
-              Иконка / Обложка
+              {t('quizMeta.coverEmoji')}
             </label>
             <div className="flex flex-wrap gap-2">
               {EMOJI_PRESETS.map((emoji) => (
@@ -96,10 +98,10 @@ export function QuizMetaModal({ quiz, isOpen, onClose, onSave }: QuizMetaModalPr
                     sounds.playClick();
                     setCoverEmoji(emoji);
                   }}
-                  aria-label={`Выбрать обложку ${emoji}`}
+                  aria-label={`Emoji ${emoji}`}
                   className={`w-10 h-10 rounded-2xl text-xl flex items-center justify-center border transition cursor-pointer ${
                     coverEmoji === emoji
-                      ? 'bg-slate-800 border-amber-400 ring-2 ring-amber-400/40'
+                      ? 'bg-slate-800 border-[var(--accent-400)] ring-2 ring-[var(--accent-400)]/40'
                       : 'bg-slate-950 border-slate-800 hover:bg-slate-800'
                   }`}
                 >
@@ -111,22 +113,22 @@ export function QuizMetaModal({ quiz, isOpen, onClose, onSave }: QuizMetaModalPr
 
           <div>
             <label htmlFor="quiz-title-input" className="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-1.5">
-              Название квиза
+              {t('quizMeta.quizTitle')}
             </label>
             <input
               id="quiz-title-input"
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Например: Супер-квиз для IT-команды"
-              className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-4 py-2.5 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-amber-400 transition"
+              placeholder={t('quizMeta.quizTitlePlaceholder')}
+              className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-4 py-2.5 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-[var(--accent-400)] transition"
               required
             />
           </div>
 
           <div>
             <label className="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-1.5">
-              Категория
+              {t('quizMeta.category')}
             </label>
             <div className="flex flex-wrap gap-1.5 mb-2">
               {CATEGORY_PRESETS.map((cat) => (
@@ -139,7 +141,7 @@ export function QuizMetaModal({ quiz, isOpen, onClose, onSave }: QuizMetaModalPr
                   }}
                   className={`text-xs px-3 py-1.5 rounded-xl border transition cursor-pointer ${
                     category === cat
-                      ? 'bg-amber-400 text-slate-950 border-amber-400 font-bold shadow-sm'
+                      ? 'bg-[var(--accent-500)] text-slate-950 border-[var(--accent-500)] font-bold shadow-sm'
                       : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-white'
                   }`}
                 >
@@ -151,15 +153,15 @@ export function QuizMetaModal({ quiz, isOpen, onClose, onSave }: QuizMetaModalPr
 
           <div>
             <label htmlFor="quiz-desc-input" className="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-1.5">
-              Краткое описание (для игроков)
+              {t('quizMeta.description')}
             </label>
             <textarea
               id="quiz-desc-input"
               rows={2}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="О чем этот квиз, сколько вопросов и правила..."
-              className="w-full bg-slate-950 border border-slate-800 rounded-2xl p-3 text-xs sm:text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-amber-400 transition resize-none"
+              placeholder={t('quizMeta.descriptionPlaceholder')}
+              className="w-full bg-slate-950 border border-slate-800 rounded-2xl p-3 text-xs sm:text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-[var(--accent-400)] transition resize-none"
             />
           </div>
 
@@ -172,14 +174,14 @@ export function QuizMetaModal({ quiz, isOpen, onClose, onSave }: QuizMetaModalPr
               }}
               className="px-4 py-2.5 text-xs font-semibold text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition cursor-pointer"
             >
-              Отмена
+              {t('common.cancel')}
             </button>
             <button
               type="submit"
-              className="px-5 py-2.5 text-xs font-bold bg-amber-400 hover:bg-amber-300 active:bg-amber-500 text-slate-950 rounded-xl transition flex items-center gap-2 shadow-lg shadow-amber-400/20 cursor-pointer"
+              className="px-5 py-2.5 text-xs font-bold bg-[var(--accent-500)] hover:brightness-110 active:brightness-90 text-slate-950 rounded-xl transition flex items-center gap-2 shadow-lg shadow-[var(--accent-glow)] cursor-pointer"
             >
               <Check className="w-4 h-4 stroke-[3]" />
-              <span>Сохранить</span>
+              <span>{t('quizMeta.saveMeta')}</span>
             </button>
           </div>
         </form>

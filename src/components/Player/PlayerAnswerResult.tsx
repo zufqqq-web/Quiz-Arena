@@ -5,6 +5,7 @@ import { Check, X, Flame, Award, Zap } from 'lucide-react';
 import { sounds } from '../../utils/sound';
 import { AnimatedCounter } from '../Common/AnimatedCounter';
 import { shakeVariant } from '../../utils/motionVariants';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 interface PlayerAnswerResultProps {
   player: Player;
@@ -18,11 +19,12 @@ interface PlayerAnswerResultProps {
 export function PlayerAnswerResult({
   player,
   question,
-  questionIndex,
+  questionIndex: _questionIndex,
   answer,
   rank,
   totalPlayers,
 }: PlayerAnswerResultProps) {
+  const { t } = useLanguage();
   const isCorrect = answer?.isCorrect ?? false;
   const points = answer?.pointsEarned ?? 0;
   const isPoll = question.type === 'poll';
@@ -50,7 +52,7 @@ export function PlayerAnswerResult({
         </div>
 
         <div className="text-xs font-mono font-bold text-slate-400 bg-slate-900 px-3 py-1 rounded-xl border border-slate-800">
-          Счет: <AnimatedCounter value={player.score} duration={600} />
+          {t('player.score')}: <AnimatedCounter value={player.score} duration={600} />
         </div>
       </div>
 
@@ -92,7 +94,7 @@ export function PlayerAnswerResult({
 
         <div>
           <h2 className="text-2xl md:text-3xl font-black text-white">
-            {isPoll ? 'Голос учтен!' : isCorrect ? 'Правильно!' : 'Неверно!'}
+            {isPoll ? t('player.pollRegistered') : isCorrect ? t('player.correct') : t('player.incorrect')}
           </h2>
           {points > 0 ? (
             <motion.div
@@ -101,11 +103,11 @@ export function PlayerAnswerResult({
               transition={{ delay: 0.2 }}
               className="text-base font-mono font-bold text-emerald-400 mt-1"
             >
-              +{points} баллов
+              +{points} {t('player.pts')}
             </motion.div>
           ) : (
             <div className="text-xs text-slate-500 mt-1">
-              {isPoll ? 'Спасибо за участие в опросе' : '+0 баллов'}
+              {isPoll ? t('player.thanksVote') : `+0 ${t('player.pts')}`}
             </div>
           )}
         </div>
@@ -120,7 +122,7 @@ export function PlayerAnswerResult({
           >
             <Flame className="w-4 h-4 fill-orange-400 text-orange-400" />
             <span>
-              Серия: x{player.streak} подряд! {answer?.streakMultiplier && answer.streakMultiplier > 1 && `(Множитель ×${answer.streakMultiplier})`}
+              x{player.streak} streak! {answer?.streakMultiplier && answer.streakMultiplier > 1 && `(×${answer.streakMultiplier})`}
             </span>
           </motion.div>
         )}
@@ -133,7 +135,7 @@ export function PlayerAnswerResult({
             className="bg-cyan-950/60 border border-cyan-800/80 text-cyan-300 px-4 py-2.5 rounded-2xl flex items-center justify-center gap-2 text-xs font-bold shadow-lg"
           >
             <span>🛡️</span>
-            <span>Щит спас вашу серию побед от сгорания!</span>
+            <span>{t('player.shieldProtected')}</span>
           </motion.div>
         )}
 
@@ -145,23 +147,23 @@ export function PlayerAnswerResult({
             className="bg-purple-950/60 border border-purple-800/80 text-purple-300 px-4 py-2 rounded-2xl flex items-center justify-center gap-2 text-xs font-bold"
           >
             <Zap className="w-4 h-4 text-purple-400" />
-            <span>Бонус 2x удвоения очков применен!</span>
+            <span>{t('player.doubleApplied')}</span>
           </motion.div>
         )}
 
         {/* Rank Standing */}
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 w-full flex items-center justify-between">
           <div className="flex items-center gap-2 text-xs text-slate-400">
-            <Award className="w-4 h-4 text-amber-400" />
-            <span>Текущая позиция:</span>
+            <Award className="w-4 h-4 text-[var(--accent-400)]" />
+            <span>{t('player.currentRank')}:</span>
           </div>
           <div className="text-base font-bold text-white font-mono">
-            {rank} из {totalPlayers}
+            {rank} / {totalPlayers}
           </div>
         </div>
 
         <p className="text-xs text-slate-500">
-          Смотрите подробный разбор на главном экране ведущего...
+          {t('player.watchHostScreen')}
         </p>
       </motion.div>
 

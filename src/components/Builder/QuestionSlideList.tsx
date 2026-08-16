@@ -1,5 +1,6 @@
 import { Question } from '../../types';
 import { Plus, Trash2, Copy, MoveUp, MoveDown, HelpCircle, CheckCircle2, ListOrdered, Type, BarChart2 } from 'lucide-react';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 interface QuestionSlideListProps {
   questions: Question[];
@@ -20,6 +21,8 @@ export function QuestionSlideList({
   onDuplicate,
   onMove,
 }: QuestionSlideListProps) {
+  const { t } = useLanguage();
+
   const getTypeIcon = (type: Question['type']) => {
     switch (type) {
       case 'single':
@@ -39,12 +42,12 @@ export function QuestionSlideList({
 
   const getTypeName = (type: Question['type']) => {
     switch (type) {
-      case 'single': return 'Один ответ';
-      case 'boolean': return 'Правда / Ложь';
-      case 'multiple': return 'Несколько ответов';
-      case 'order': return 'Порядок';
-      case 'text': return 'Текстовый ответ';
-      case 'poll': return 'Опрос';
+      case 'single': return t('editor.singleChoice');
+      case 'boolean': return t('editor.trueFalse');
+      case 'multiple': return t('editor.multipleChoice');
+      case 'order': return t('editor.orderSequence');
+      case 'text': return t('editor.textInput');
+      case 'poll': return t('editor.pollSurvey');
     }
   };
 
@@ -52,7 +55,7 @@ export function QuestionSlideList({
     <div id="slide-list-sidebar" className="w-64 bg-slate-900 border-r border-slate-800 flex flex-col h-full select-none">
       <div className="p-3.5 border-b border-slate-800 flex items-center justify-between">
         <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-          Слайды ({questions.length})
+          {t('editor.slides')} ({questions.length})
         </span>
         <button
           id="btn-add-question"
@@ -60,7 +63,7 @@ export function QuestionSlideList({
           className="flex items-center gap-1 text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 px-2.5 py-1.5 rounded-lg border border-slate-700 transition cursor-pointer"
         >
           <Plus className="w-3.5 h-3.5 text-emerald-400" />
-          <span>Вопрос</span>
+          <span>{t('editor.addQuestion')}</span>
         </button>
       </div>
 
@@ -73,7 +76,7 @@ export function QuestionSlideList({
               onClick={() => onSelect(idx)}
               className={`group relative rounded-xl border p-2.5 transition cursor-pointer text-left ${
                 isSelected
-                  ? 'bg-slate-800/90 border-slate-500 shadow-md ring-1 ring-slate-500'
+                  ? 'bg-slate-800/90 border-[var(--accent-400)] shadow-md ring-1 ring-[var(--accent-400)]/40'
                   : 'bg-slate-950/60 border-slate-800/80 hover:bg-slate-800/50 hover:border-slate-700'
               }`}
             >
@@ -84,16 +87,16 @@ export function QuestionSlideList({
                   </span>
                   <span className="flex items-center gap-1 text-slate-300">
                     {getTypeIcon(q.type)}
-                    <span>{getTypeName(q.type)}</span>
+                    <span className="truncate max-w-[90px]">{getTypeName(q.type)}</span>
                   </span>
                 </span>
                 <span className="text-[10px] text-slate-500 font-mono bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800">
-                  {q.timeLimit}с
+                  {q.timeLimit}s
                 </span>
               </div>
 
               <div className="text-xs text-slate-200 font-medium line-clamp-2 min-h-[2.5rem]">
-                {q.title || <span className="text-slate-500 italic">Без названия</span>}
+                {q.title || <span className="text-slate-500 italic">{t('editor.questionTitlePlaceholder')}</span>}
               </div>
 
               {/* Action Toolbar on Slide */}
@@ -106,7 +109,7 @@ export function QuestionSlideList({
                       onMove(idx, idx - 1);
                     }}
                     className="p-1 hover:bg-slate-700 text-slate-400 hover:text-slate-200 rounded disabled:opacity-30 disabled:cursor-not-allowed"
-                    title="Переместить выше"
+                    title={t('editor.moveUp')}
                   >
                     <MoveUp className="w-3 h-3" />
                   </button>
@@ -117,7 +120,7 @@ export function QuestionSlideList({
                       onMove(idx, idx + 1);
                     }}
                     className="p-1 hover:bg-slate-700 text-slate-400 hover:text-slate-200 rounded disabled:opacity-30 disabled:cursor-not-allowed"
-                    title="Переместить ниже"
+                    title={t('editor.moveDown')}
                   >
                     <MoveDown className="w-3 h-3" />
                   </button>
@@ -127,7 +130,7 @@ export function QuestionSlideList({
                       onDuplicate(idx);
                     }}
                     className="p-1 hover:bg-slate-700 text-slate-400 hover:text-slate-200 rounded"
-                    title="Дублировать слайд"
+                    title={t('editor.duplicateQuestion')}
                   >
                     <Copy className="w-3 h-3" />
                   </button>
@@ -140,7 +143,7 @@ export function QuestionSlideList({
                       onDelete(idx);
                     }}
                     className="p-1 hover:bg-red-950/80 text-slate-400 hover:text-red-400 rounded"
-                    title="Удалить слайд"
+                    title={t('editor.deleteQuestion')}
                   >
                     <Trash2 className="w-3 h-3" />
                   </button>

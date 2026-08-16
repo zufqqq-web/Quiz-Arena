@@ -1,9 +1,10 @@
 import { useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Question, Player } from '../../types';
-import { Check, X, ArrowRight, Lightbulb, BarChart2 } from 'lucide-react';
+import { Check, ArrowRight, Lightbulb } from 'lucide-react';
 import { sounds } from '../../utils/sound';
 import { staggerContainer, staggerItem, buttonHoverTap } from '../../utils/motionVariants';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 interface HostQuestionRevealProps {
   question: Question;
@@ -27,6 +28,7 @@ export function HostQuestionReveal({
   players,
   onProceedToLeaderboard,
 }: HostQuestionRevealProps) {
+  const { t } = useLanguage();
   const playerList = Object.values(players);
   const totalPlayers = playerList.length;
 
@@ -60,10 +62,10 @@ export function HostQuestionReveal({
       <div className="flex items-center justify-between z-10">
         <div className="flex items-center gap-3">
           <span className="text-xs font-bold text-slate-400 uppercase tracking-wider bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-800">
-            Результаты раунда {questionIndex + 1} / {totalQuestions}
+            {t('host.roundResults', { current: questionIndex + 1, total: totalQuestions })}
           </span>
           <span className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-slate-300">
-            Точность: <strong className={correctRatePercent >= 50 ? 'text-emerald-400' : 'text-amber-400'}>{correctRatePercent}%</strong> ({correctCount}/{totalPlayers})
+            {t('host.accuracy')}: <strong className={correctRatePercent >= 50 ? 'text-emerald-400' : 'text-amber-400'}>{correctRatePercent}%</strong> ({correctCount}/{totalPlayers})
           </span>
         </div>
 
@@ -78,7 +80,7 @@ export function HostQuestionReveal({
           }}
           className="flex items-center gap-2 text-xs font-bold bg-slate-100 hover:bg-white text-slate-950 px-5 py-2 rounded-xl transition shadow-lg cursor-pointer"
         >
-          <span>Таблица лидеров</span>
+          <span>{t('host.leaderboard')}</span>
           <ArrowRight className="w-4 h-4" />
         </motion.button>
       </div>
@@ -166,7 +168,7 @@ export function HostQuestionReveal({
             className="bg-slate-900 border-2 border-emerald-500/60 rounded-2xl p-6 text-center shadow-xl"
           >
             <span className="text-xs uppercase tracking-wider text-slate-400 font-bold block mb-2">
-              Правильный текстовый ответ:
+              {t('editor.correctAnswerText')}:
             </span>
             <div className="text-2xl md:text-3xl font-mono font-black text-emerald-400">
               «{question.correctTextAnswer}»
@@ -182,43 +184,15 @@ export function HostQuestionReveal({
             className="bg-slate-900 border-2 border-emerald-500/60 rounded-2xl p-6 text-center shadow-xl"
           >
             <span className="text-xs uppercase tracking-wider text-slate-400 font-bold block mb-2">
-              Правильное числовое значение:
+              {t('editor.correctNumber')}:
             </span>
             <div className="text-3xl md:text-4xl font-mono font-black text-emerald-400">
               {question.correctNumberAnswer}
               {question.numberTolerance && question.numberTolerance > 0 && (
                 <span className="text-sm font-sans font-normal text-slate-400 ml-2">
-                  (допустимо ±{question.numberTolerance})
+                  (±{question.numberTolerance})
                 </span>
               )}
-            </div>
-          </motion.div>
-        )}
-
-        {/* Dynamic difficulty alert */}
-        {totalPlayers > 0 && correctRatePercent <= 35 && question.type !== 'poll' && (
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-red-950/40 border border-red-800/80 rounded-2xl p-3.5 flex items-center gap-3 text-xs text-red-300"
-          >
-            <span className="text-lg">⚠️</span>
-            <div>
-              <strong className="text-white block">Сложный вопрос для аудитории!</strong>
-              Только {correctRatePercent}% участников смогли дать верный ответ.
-            </div>
-          </motion.div>
-        )}
-        {totalPlayers > 0 && correctRatePercent >= 85 && question.type !== 'poll' && (
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-emerald-950/40 border border-emerald-800/80 rounded-2xl p-3.5 flex items-center gap-3 text-xs text-emerald-300"
-          >
-            <span className="text-lg">🔥</span>
-            <div>
-              <strong className="text-white block">Отличный результат!</strong>
-              {correctRatePercent}% игроков справились с этим заданием.
             </div>
           </motion.div>
         )}
@@ -230,14 +204,14 @@ export function HostQuestionReveal({
             animate={{ opacity: 1, y: 0 }}
             className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-2"
           >
-            <span className="text-xs uppercase tracking-wider text-amber-400 font-bold block mb-2">
-              Правильная последовательность:
+            <span className="text-xs uppercase tracking-wider text-[var(--accent-300)] font-bold block mb-2">
+              {t('editor.orderSequence')}:
             </span>
             {[...question.options]
               .sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0))
               .map((opt, idx) => (
                 <div key={opt.id} className="bg-slate-950 border border-slate-800 rounded-xl p-3 flex items-center gap-3 text-sm font-medium text-white">
-                  <span className="w-6 h-6 rounded-full bg-amber-500 text-slate-950 font-bold text-xs flex items-center justify-center">
+                  <span className="w-6 h-6 rounded-full bg-[var(--accent-500)] text-slate-950 font-bold text-xs flex items-center justify-center">
                     {idx + 1}
                   </span>
                   <span>{opt.text}</span>
@@ -254,9 +228,9 @@ export function HostQuestionReveal({
             transition={{ delay: 0.2 }}
             className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 flex items-start gap-3 text-xs md:text-sm text-slate-300 backdrop-blur-md"
           >
-            <Lightbulb className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+            <Lightbulb className="w-5 h-5 text-[var(--accent-400)] shrink-0 mt-0.5" />
             <div>
-              <span className="font-bold text-white block mb-0.5">Разбор факта:</span>
+              <span className="font-bold text-white block mb-0.5">{t('editor.explanationLabel')}:</span>
               <span>{question.explanation}</span>
             </div>
           </motion.div>

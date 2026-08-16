@@ -2,10 +2,11 @@ import { useEffect } from 'react';
 import { motion } from 'motion/react';
 import confetti from 'canvas-confetti';
 import { Player, Quiz } from '../../types';
-import { Trophy, CheckCircle2, XCircle, Award, Flame, ArrowLeft, RotateCcw } from 'lucide-react';
+import { CheckCircle2, XCircle } from 'lucide-react';
 import { sounds } from '../../utils/sound';
 import { AnimatedCounter } from '../Common/AnimatedCounter';
 import { staggerContainer, staggerItem, buttonHoverTap } from '../../utils/motionVariants';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 interface PlayerPodiumResultProps {
   player: Player;
@@ -19,31 +20,32 @@ export function PlayerPodiumResult({
   player,
   quiz,
   rank,
-  totalPlayers,
+  totalPlayers: _totalPlayers,
   onExit,
 }: PlayerPodiumResultProps) {
+  const { t } = useLanguage();
   const isTop3 = rank <= 3;
   const correctCount = Object.values(player.answers || {}).filter((a) => a.isCorrect).length;
   const totalQuestions = quiz.questions.length;
   const accuracyPct = totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) : 0;
 
   // Personal Badge Assignment
-  let badgeTitle = 'Эрудит';
+  let badgeTitle = 'Scholar';
   let badgeEmoji = '🧠';
-  let badgeDesc = 'Уверенная и стабильная игра';
+  let badgeDesc = 'Solid and steady performance';
 
   if (rank === 1) {
-    badgeTitle = 'Абсолютный Чемпион';
+    badgeTitle = 'Champion';
     badgeEmoji = '👑';
-    badgeDesc = '1 место в общем зачете';
+    badgeDesc = '1st place';
   } else if (player.highestStreak >= 3) {
-    badgeTitle = 'Мастер Серий';
+    badgeTitle = 'Streak Master';
     badgeEmoji = '🔥';
-    badgeDesc = `Серия из ${player.highestStreak} верных ответов`;
+    badgeDesc = `Streak of ${player.highestStreak}`;
   } else if (accuracyPct >= 80) {
-    badgeTitle = 'Снайпер Точности';
+    badgeTitle = 'Sharpshooter';
     badgeEmoji = '🎯';
-    badgeDesc = `${accuracyPct}% попаданий`;
+    badgeDesc = `${accuracyPct}% accuracy`;
   }
 
   useEffect(() => {
@@ -71,7 +73,7 @@ export function PlayerPodiumResult({
           onClick={onExit}
           className="text-xs font-medium text-slate-400 hover:text-white bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-xl cursor-pointer transition"
         >
-          В меню
+          {t('host.returnHome')}
         </button>
       </div>
 
@@ -102,7 +104,7 @@ export function PlayerPodiumResult({
               transition={{ delay: 0.3, type: 'spring', stiffness: 400 }}
               className={`absolute -bottom-2 -right-2 w-9 h-9 rounded-full font-mono font-black text-sm flex items-center justify-center border-2 border-slate-900 shadow-md ${
                 rank === 1
-                  ? 'bg-amber-400 text-slate-950'
+                  ? 'bg-[var(--accent-500)] text-slate-950 font-bold'
                   : rank === 2
                   ? 'bg-slate-300 text-slate-950'
                   : rank === 3
@@ -118,10 +120,10 @@ export function PlayerPodiumResult({
             <h2 className="text-2xl font-black text-white">{player.nickname}</h2>
             <p className="text-xs text-slate-400 mt-0.5">
               {rank === 1
-                ? '🎉 Поздравляем с безоговорочной победой!'
+                ? '🎉 Congratulations on your victory!'
                 : isTop3
-                ? '👏 Отличный результат и место на подиуме!'
-                : 'Квиз завершен, спасибо за отличную битву!'}
+                ? '👏 Podium finish! Great job!'
+                : 'Quiz completed, thanks for playing!'}
             </p>
           </div>
 
@@ -129,7 +131,7 @@ export function PlayerPodiumResult({
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-slate-950 border border-slate-800 rounded-2xl p-3">
               <div className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">
-                Набранные баллы
+                {t('player.score')}
               </div>
               <div className="text-xl font-black font-mono text-white mt-1">
                 <AnimatedCounter value={player.score} duration={800} />
@@ -138,7 +140,7 @@ export function PlayerPodiumResult({
 
             <div className="bg-slate-950 border border-slate-800 rounded-2xl p-3">
               <div className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">
-                Точность ответов
+                {t('host.accuracy')}
               </div>
               <div className="text-xl font-black font-mono text-emerald-400 mt-1">
                 {correctCount}/{totalQuestions} ({accuracyPct}%)
@@ -155,7 +157,7 @@ export function PlayerPodiumResult({
               <div className="text-xs font-bold text-white flex items-center gap-1.5">
                 <span>{badgeTitle}</span>
                 <span className="text-[9px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded uppercase font-semibold">
-                  Бейдж
+                  Badge
                 </span>
               </div>
               <div className="text-[11px] text-slate-400 mt-0.5">{badgeDesc}</div>
@@ -169,7 +171,7 @@ export function PlayerPodiumResult({
           className="bg-slate-900/80 border border-slate-800 rounded-3xl p-5 space-y-3"
         >
           <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
-            Разбор ваших ответов
+            {t('host.questionStats')}
           </h3>
 
           <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
@@ -207,7 +209,7 @@ export function PlayerPodiumResult({
           onClick={onExit}
           className="w-full py-3.5 rounded-2xl bg-slate-100 hover:bg-white text-slate-950 font-bold text-sm transition shadow-xl cursor-pointer"
         >
-          Завершить и выйти в меню
+          {t('host.returnHome')}
         </motion.button>
       </motion.div>
 

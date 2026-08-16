@@ -1,6 +1,7 @@
 import React from 'react';
 import { Question } from '../../types';
 import { Check, Image as ImageIcon, Sparkles, ArrowUp, ArrowDown, Info } from 'lucide-react';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 interface QuestionCanvasProps {
   question: Question;
@@ -15,6 +16,8 @@ const OPTION_STYLES = [
 ];
 
 export function QuestionCanvas({ question, onChange }: QuestionCanvasProps) {
+  const { t } = useLanguage();
+
   const handleTitleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     onChange({ ...question, title: e.target.value });
   };
@@ -69,37 +72,37 @@ export function QuestionCanvas({ question, onChange }: QuestionCanvasProps) {
       {!hasCorrectSelected && (
         <div className="w-full max-w-3xl mb-4 bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs px-4 py-2 rounded-xl flex items-center gap-2">
           <Info className="w-4 h-4 text-amber-400 shrink-0" />
-          <span>Обратите внимание: отметьте хотя бы один вариант как правильный для начисления баллов.</span>
+          <span>{t('editor.markCorrect')}</span>
         </div>
       )}
 
       {/* Question Prompt Center Card */}
       <div className="w-full max-w-3xl bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl transition-all">
         <label className="text-[11px] font-semibold tracking-wider text-slate-400 uppercase block mb-1.5 flex items-center justify-between">
-          <span>Текст вопроса</span>
-          <span className="text-slate-500 lowercase font-normal">{question.title.length}/200 симв.</span>
+          <span>{t('editor.questionType')}</span>
+          <span className="text-slate-500 lowercase font-normal">{question.title.length}/200</span>
         </label>
         <textarea
           id="input-question-title"
           rows={2}
           value={question.title}
           onChange={handleTitleChange}
-          placeholder="Например: В каком году человек впервые полетел в космос?"
-          className="w-full bg-slate-950/80 border border-slate-700/80 rounded-xl p-3.5 text-base md:text-lg font-medium text-white placeholder:text-slate-600 focus:outline-none focus:border-slate-400 resize-none transition"
+          placeholder={t('editor.questionTitlePlaceholder')}
+          className="w-full bg-slate-950/80 border border-slate-700/80 rounded-xl p-3.5 text-base md:text-lg font-medium text-white placeholder:text-slate-600 focus:outline-none focus:border-[var(--accent-400)] resize-none transition"
         />
 
         {/* Media / Image URL Optional Field */}
         <div className="mt-3 pt-3 border-t border-slate-800/80 flex items-center gap-3">
           <div className="flex items-center gap-2 text-xs text-slate-400">
             <ImageIcon className="w-4 h-4 text-slate-500" />
-            <span>Картинка (URL):</span>
+            <span>URL:</span>
           </div>
           <input
             id="input-question-image"
             type="url"
             value={question.imageUrl || ''}
             onChange={(e) => onChange({ ...question, imageUrl: e.target.value })}
-            placeholder="https://images.unsplash.com/... (необязательно)"
+            placeholder="https://images.unsplash.com/... (optional)"
             className="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-300 placeholder:text-slate-600 focus:outline-none focus:border-slate-500"
           />
           {question.imageUrl && (
@@ -107,7 +110,7 @@ export function QuestionCanvas({ question, onChange }: QuestionCanvasProps) {
               onClick={() => onChange({ ...question, imageUrl: '' })}
               className="text-xs text-red-400 hover:underline cursor-pointer"
             >
-              Очистить
+              {t('common.delete')}
             </button>
           )}
         </div>
@@ -137,7 +140,7 @@ export function QuestionCanvas({ question, onChange }: QuestionCanvasProps) {
                     type="text"
                     value={opt.text}
                     onChange={(e) => handleOptionTextChange(opt.id, e.target.value)}
-                    placeholder={`Вариант ${idx + 1}...`}
+                    placeholder={`${t('editor.optionPlaceholder', { num: idx + 1 })}`}
                     className="flex-1 bg-transparent text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none font-medium"
                   />
                   {question.type !== 'poll' && (
@@ -149,7 +152,7 @@ export function QuestionCanvas({ question, onChange }: QuestionCanvasProps) {
                           ? 'bg-emerald-500 border-emerald-400 text-white shadow-sm'
                           : 'border-slate-700 hover:border-slate-500 text-transparent hover:text-slate-500'
                       }`}
-                      title={isCorrect ? 'Правильный ответ' : 'Сделать правильным'}
+                      title={isCorrect ? t('editor.markCorrect') : t('editor.markCorrect')}
                     >
                       <Check className="w-4 h-4 stroke-[3]" />
                     </button>
@@ -164,7 +167,11 @@ export function QuestionCanvas({ question, onChange }: QuestionCanvasProps) {
         {question.type === 'boolean' && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {question.options.map((opt) => {
-              const isTrue = opt.text.toLowerCase().includes('правда') || opt.text.toLowerCase().includes('true');
+              const isTrue =
+                opt.text.toLowerCase().includes('правда') ||
+                opt.text.toLowerCase().includes('true') ||
+                opt.text.toLowerCase().includes('to\'g\'ri') ||
+                opt.text.toLowerCase().includes('haqiqat');
               const isCorrect = opt.isCorrect;
               return (
                 <div
@@ -183,7 +190,7 @@ export function QuestionCanvas({ question, onChange }: QuestionCanvasProps) {
                   <span className={`text-xs px-3 py-1 rounded-full font-medium ${
                     isCorrect ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-800 text-slate-500'
                   }`}>
-                    {isCorrect ? 'Правильный ответ' : 'Нажмите, чтобы выбрать'}
+                    {isCorrect ? t('editor.markCorrect') : t('common.apply')}
                   </span>
                 </div>
               );
@@ -196,7 +203,7 @@ export function QuestionCanvas({ question, onChange }: QuestionCanvasProps) {
           <div className="space-y-2.5">
             <div className="text-xs text-purple-400 font-medium flex items-center gap-1.5 mb-1">
               <Sparkles className="w-3.5 h-3.5" />
-              <span>Отметьте один или несколько правильных вариантов (чекбоксы):</span>
+              <span>{t('editor.multipleChoice')}</span>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {question.options.map((opt, idx) => {
@@ -218,7 +225,7 @@ export function QuestionCanvas({ question, onChange }: QuestionCanvasProps) {
                       type="text"
                       value={opt.text}
                       onChange={(e) => handleOptionTextChange(opt.id, e.target.value)}
-                      placeholder={`Вариант ${idx + 1}...`}
+                      placeholder={`${t('editor.optionPlaceholder', { num: idx + 1 })}`}
                       className="flex-1 bg-transparent text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none font-medium"
                     />
                     <button
@@ -242,8 +249,8 @@ export function QuestionCanvas({ question, onChange }: QuestionCanvasProps) {
         {/* TYPE 4: Order / Sequence */}
         {question.type === 'order' && (
           <div className="space-y-2.5">
-            <div className="text-xs text-amber-400 font-medium mb-1">
-              Расположите элементы в правильном хронологическом/логическом порядке сверху вниз:
+            <div className="text-xs text-[var(--accent-300)] font-medium mb-1">
+              {t('editor.dragToReorder')}
             </div>
             {question.options.map((opt, idx) => (
               <div
@@ -251,14 +258,14 @@ export function QuestionCanvas({ question, onChange }: QuestionCanvasProps) {
                 className="bg-slate-900 border border-slate-800 rounded-xl p-3 flex items-center justify-between gap-3 shadow-sm"
               >
                 <div className="flex items-center gap-3 flex-1">
-                  <span className="w-6 h-6 rounded-full bg-amber-500/20 text-amber-400 font-bold text-xs flex items-center justify-center shrink-0">
+                  <span className="w-6 h-6 rounded-full bg-[var(--accent-subtle)] text-[var(--accent-300)] font-bold text-xs flex items-center justify-center shrink-0">
                     {idx + 1}
                   </span>
                   <input
                     type="text"
                     value={opt.text}
                     onChange={(e) => handleOptionTextChange(opt.id, e.target.value)}
-                    placeholder={`Шаг ${idx + 1}...`}
+                    placeholder={`${t('editor.optionPlaceholder', { num: idx + 1 })}`}
                     className="flex-1 bg-transparent text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none font-medium"
                   />
                 </div>
@@ -267,7 +274,7 @@ export function QuestionCanvas({ question, onChange }: QuestionCanvasProps) {
                     disabled={idx === 0}
                     onClick={() => handleMoveOrderOption(idx, 'up')}
                     className="p-1 hover:bg-slate-800 text-slate-400 rounded disabled:opacity-20"
-                    title="Вверх"
+                    title={t('editor.moveUp')}
                   >
                     <ArrowUp className="w-4 h-4" />
                   </button>
@@ -275,7 +282,7 @@ export function QuestionCanvas({ question, onChange }: QuestionCanvasProps) {
                     disabled={idx === question.options.length - 1}
                     onClick={() => handleMoveOrderOption(idx, 'down')}
                     className="p-1 hover:bg-slate-800 text-slate-400 rounded disabled:opacity-20"
-                    title="Вниз"
+                    title={t('editor.moveDown')}
                   >
                     <ArrowDown className="w-4 h-4" />
                   </button>
@@ -289,17 +296,17 @@ export function QuestionCanvas({ question, onChange }: QuestionCanvasProps) {
         {question.type === 'text' && (
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3">
             <div className="text-xs text-slate-400 font-medium">
-              Игроки будут вводить ответ текстом вручную. Проверка происходит без учета регистра.
+              {t('editor.textInput')}
             </div>
             <div>
               <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block mb-1.5">
-                Эталонный правильный ответ:
+                {t('editor.correctAnswerText')}:
               </label>
               <input
                 type="text"
                 value={question.correctTextAnswer || ''}
                 onChange={(e) => onChange({ ...question, correctTextAnswer: e.target.value })}
-                placeholder="Например: 1961 или Юрий Гагарин"
+                placeholder="1961..."
                 className="w-full bg-slate-950 border border-pink-500/40 rounded-xl px-4 py-3 text-base text-pink-300 placeholder:text-slate-600 focus:outline-none focus:border-pink-500"
               />
             </div>
@@ -310,38 +317,38 @@ export function QuestionCanvas({ question, onChange }: QuestionCanvasProps) {
         {question.type === 'number' && (
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
             <div className="text-xs text-slate-400 font-medium">
-              Игроки вводят число. Вы можете задать точное число или допустимую погрешность (±).
+              {t('editor.numberInput')}
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block mb-1.5">
-                  Правильное число:
+                  {t('editor.correctNumber')}:
                 </label>
                 <input
                   type="number"
                   value={question.correctNumberAnswer ?? ''}
                   onChange={(e) => onChange({ ...question, correctNumberAnswer: parseFloat(e.target.value) || 0 })}
-                  placeholder="Например: 1961"
+                  placeholder="1961"
                   className="w-full bg-slate-950 border border-blue-500/40 rounded-xl px-4 py-3 text-base font-mono text-blue-300 placeholder:text-slate-600 focus:outline-none focus:border-blue-500"
                 />
               </div>
 
               <div>
                 <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block mb-1.5">
-                  Погрешность (±):
+                  {t('editor.numberTolerance')}:
                 </label>
                 <input
                   type="number"
                   min={0}
                   value={question.numberTolerance ?? 0}
                   onChange={(e) => onChange({ ...question, numberTolerance: Math.max(0, parseFloat(e.target.value) || 0) })}
-                  placeholder="0 для точного совпадения"
+                  placeholder="0"
                   className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-base font-mono text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-slate-500"
                 />
                 <div className="text-[10px] text-slate-500 mt-1">
                   {question.numberTolerance && question.numberTolerance > 0
-                    ? `Засчитываются ответы от ${(question.correctNumberAnswer ?? 0) - question.numberTolerance} до ${(question.correctNumberAnswer ?? 0) + question.numberTolerance}`
-                    : 'Требуется строго точное число'}
+                    ? `±${question.numberTolerance}`
+                    : 'Exact match'}
                 </div>
               </div>
             </div>
@@ -349,16 +356,16 @@ export function QuestionCanvas({ question, onChange }: QuestionCanvasProps) {
         )}
       </div>
 
-      {/* Bottom Explanation Field (Shown after reveal for educational value) */}
+      {/* Bottom Explanation Field */}
       <div className="w-full max-w-3xl bg-slate-900/70 border border-slate-800 rounded-xl p-3.5">
         <label className="text-[11px] font-semibold tracking-wider text-slate-400 uppercase block mb-1">
-          Пояснение для участников (показывается после ответа):
+          {t('editor.explanationLabel')}:
         </label>
         <input
           type="text"
           value={question.explanation || ''}
           onChange={(e) => onChange({ ...question, explanation: e.target.value })}
-          placeholder="Краткий интересный факт, почему этот ответ верный..."
+          placeholder={t('editor.explanationPlaceholder')}
           className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-300 placeholder:text-slate-600 focus:outline-none focus:border-slate-500"
         />
       </div>

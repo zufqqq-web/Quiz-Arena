@@ -1,47 +1,50 @@
 import { Question, QuestionType } from '../../types';
 import { Clock, Award, Layers, HelpCircle, CheckCircle2, ListOrdered, Type, BarChart2, Hash } from 'lucide-react';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 interface QuestionSettingsProps {
   question: Question;
   onChange: (updated: Question) => void;
 }
 
-const QUESTION_TYPES: Array<{ type: QuestionType; label: string; desc: string; icon: any }> = [
-  { type: 'single', label: 'Один ответ', desc: '4 цветных варианта, 1 верный', icon: HelpCircle },
-  { type: 'multiple', label: 'Чекбоксы', desc: 'Несколько верных ответов', icon: Layers },
-  { type: 'boolean', label: 'Правда / Ложь', desc: 'Два варианта (Да / Нет)', icon: CheckCircle2 },
-  { type: 'text', label: 'Ввод текста', desc: 'Игрок сам вводит слово', icon: Type },
-  { type: 'number', label: 'Числовой ответ', desc: 'Число с погрешностью ±', icon: Hash },
-  { type: 'order', label: 'Сопоставление / Порядок', desc: 'Расположить по очереди', icon: ListOrdered },
-  { type: 'poll', label: 'Опрос / Голосование', desc: 'Без правильного ответа', icon: BarChart2 },
-];
-
 const TIME_LIMITS = [5, 10, 15, 20, 30, 45, 60, 90, 120];
 
 export function QuestionSettings({ question, onChange }: QuestionSettingsProps) {
+  const { t } = useLanguage();
+
+  const questionTypes: Array<{ type: QuestionType; label: string; desc: string; icon: any }> = [
+    { type: 'single', label: t('editor.singleChoice'), desc: '4 options, 1 correct', icon: HelpCircle },
+    { type: 'multiple', label: t('editor.multipleChoice'), desc: 'Multiple correct options', icon: Layers },
+    { type: 'boolean', label: t('editor.trueFalse'), desc: 'True / False', icon: CheckCircle2 },
+    { type: 'text', label: t('editor.textInput'), desc: 'Open text word', icon: Type },
+    { type: 'number', label: t('editor.numberInput'), desc: 'Numeric with tolerance ±', icon: Hash },
+    { type: 'order', label: t('editor.orderSequence'), desc: 'Sequence order', icon: ListOrdered },
+    { type: 'poll', label: t('editor.pollSurvey'), desc: 'Opinion / No correct answer', icon: BarChart2 },
+  ];
+
   const handleTypeChange = (type: QuestionType) => {
     let options = [...question.options];
 
     if (type === 'boolean') {
       options = [
-        { id: 'b-1', text: 'Правда (True)', isCorrect: true },
-        { id: 'b-2', text: 'Ложь (False)', isCorrect: false },
+        { id: 'b-1', text: t('editor.trueOption'), isCorrect: true },
+        { id: 'b-2', text: t('editor.falseOption'), isCorrect: false },
       ];
     } else if (type === 'single' || type === 'multiple' || type === 'poll') {
       if (options.length < 4) {
         options = [
-          { id: 'opt-1', text: 'Вариант 1', isCorrect: true },
-          { id: 'opt-2', text: 'Вариант 2', isCorrect: false },
-          { id: 'opt-3', text: 'Вариант 3', isCorrect: false },
-          { id: 'opt-4', text: 'Вариант 4', isCorrect: false },
+          { id: 'opt-1', text: `${t('editor.optionPlaceholder', { num: 1 })}`, isCorrect: true },
+          { id: 'opt-2', text: `${t('editor.optionPlaceholder', { num: 2 })}`, isCorrect: false },
+          { id: 'opt-3', text: `${t('editor.optionPlaceholder', { num: 3 })}`, isCorrect: false },
+          { id: 'opt-4', text: `${t('editor.optionPlaceholder', { num: 4 })}`, isCorrect: false },
         ];
       }
     } else if (type === 'order') {
       options = [
-        { id: 'ord-1', text: 'Шаг 1', orderIndex: 0 },
-        { id: 'ord-2', text: 'Шаг 2', orderIndex: 1 },
-        { id: 'ord-3', text: 'Шаг 3', orderIndex: 2 },
-        { id: 'ord-4', text: 'Шаг 4', orderIndex: 3 },
+        { id: 'ord-1', text: `${t('editor.optionPlaceholder', { num: 1 })}`, orderIndex: 0 },
+        { id: 'ord-2', text: `${t('editor.optionPlaceholder', { num: 2 })}`, orderIndex: 1 },
+        { id: 'ord-3', text: `${t('editor.optionPlaceholder', { num: 3 })}`, orderIndex: 2 },
+        { id: 'ord-4', text: `${t('editor.optionPlaceholder', { num: 4 })}`, orderIndex: 3 },
       ];
     } else if (type === 'number') {
       options = [];
@@ -59,19 +62,19 @@ export function QuestionSettings({ question, onChange }: QuestionSettingsProps) 
       <div>
         <label className="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1.5 mb-2.5">
           <Layers className="w-3.5 h-3.5 text-slate-300" />
-          <span>Тип вопроса</span>
+          <span>{t('editor.questionType')}</span>
         </label>
         <div className="space-y-1.5">
-          {QUESTION_TYPES.map((t) => {
-            const isSelected = question.type === t.type;
-            const Icon = t.icon;
+          {questionTypes.map((item) => {
+            const isSelected = question.type === item.type;
+            const Icon = item.icon;
             return (
               <button
-                key={t.type}
-                onClick={() => handleTypeChange(t.type)}
+                key={item.type}
+                onClick={() => handleTypeChange(item.type)}
                 className={`w-full text-left p-2.5 rounded-xl border transition flex items-center gap-2.5 cursor-pointer ${
                   isSelected
-                    ? 'bg-slate-800 border-slate-400 text-white shadow-sm'
+                    ? 'bg-slate-800 border-[var(--accent-400)] text-white shadow-sm ring-1 ring-[var(--accent-400)]/30'
                     : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:bg-slate-800/40 hover:text-slate-200'
                 }`}
               >
@@ -79,8 +82,8 @@ export function QuestionSettings({ question, onChange }: QuestionSettingsProps) 
                   <Icon className="w-4 h-4" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-xs font-semibold">{t.label}</div>
-                  <div className="text-[10px] text-slate-500 truncate">{t.desc}</div>
+                  <div className="text-xs font-semibold">{item.label}</div>
+                  <div className="text-[10px] text-slate-500 truncate">{item.desc}</div>
                 </div>
               </button>
             );
@@ -92,7 +95,7 @@ export function QuestionSettings({ question, onChange }: QuestionSettingsProps) 
       <div>
         <label className="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1.5 mb-2.5">
           <Clock className="w-3.5 h-3.5 text-slate-300" />
-          <span>Лимит времени</span>
+          <span>{t('editor.timeLimit')}</span>
         </label>
         <div className="grid grid-cols-3 gap-1.5">
           {TIME_LIMITS.map((sec) => {
@@ -103,11 +106,11 @@ export function QuestionSettings({ question, onChange }: QuestionSettingsProps) 
                 onClick={() => onChange({ ...question, timeLimit: sec })}
                 className={`py-2 rounded-xl text-xs font-semibold border transition cursor-pointer ${
                   isSelected
-                    ? 'bg-slate-200 text-slate-950 border-slate-200 shadow-sm'
+                    ? 'bg-[var(--accent-500)] text-slate-950 border-[var(--accent-500)] shadow-sm font-bold'
                     : 'bg-slate-950 border-slate-800 text-slate-400 hover:bg-slate-800 hover:text-slate-200'
                 }`}
               >
-                {sec} сек
+                {sec} {t('common.seconds')}
               </button>
             );
           })}
@@ -118,13 +121,13 @@ export function QuestionSettings({ question, onChange }: QuestionSettingsProps) 
       <div>
         <label className="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1.5 mb-2.5">
           <Award className="w-3.5 h-3.5 text-slate-300" />
-          <span>Начисление баллов</span>
+          <span>{t('editor.pointsMultiplier')}</span>
         </label>
         <div className="grid grid-cols-3 gap-1.5">
           {[
-            { value: 1, label: 'Стандарт', badge: '1000' },
-            { value: 2, label: 'x2 Двойные', badge: '2000' },
-            { value: 0, label: '0 Без баллов', badge: '0' },
+            { value: 1, label: t('editor.pointsStandard'), badge: '1000' },
+            { value: 2, label: t('editor.pointsDouble'), badge: '2000' },
+            { value: 0, label: t('editor.pointsNone'), badge: '0' },
           ].map((p) => {
             const isSelected = question.pointsMultiplier === p.value;
             return (
@@ -133,7 +136,7 @@ export function QuestionSettings({ question, onChange }: QuestionSettingsProps) 
                 onClick={() => onChange({ ...question, pointsMultiplier: p.value })}
                 className={`py-2 px-1 rounded-xl text-center border transition cursor-pointer ${
                   isSelected
-                    ? 'bg-slate-200 text-slate-950 border-slate-200 shadow-sm'
+                    ? 'bg-[var(--accent-500)] text-slate-950 border-[var(--accent-500)] shadow-sm font-bold'
                     : 'bg-slate-950 border-slate-800 text-slate-400 hover:bg-slate-800 hover:text-slate-200'
                 }`}
               >
@@ -143,12 +146,6 @@ export function QuestionSettings({ question, onChange }: QuestionSettingsProps) 
             );
           })}
         </div>
-      </div>
-
-      {/* 4. Tips Card */}
-      <div className="mt-auto bg-slate-950 border border-slate-800/80 rounded-xl p-3 text-[11px] text-slate-500 leading-relaxed">
-        <p className="font-semibold text-slate-400 mb-1">💡 Совет для ведущего:</p>
-        Оптимальное время на вопрос — 15-20 секунд. Это поддерживает динамичный темп и азарт в зале.
       </div>
     </div>
   );

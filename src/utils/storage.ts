@@ -12,6 +12,19 @@ export interface PlayerSession {
   joinedAt?: number;
 }
 
+function getServerApiUrl(): string {
+  let defaultUrl = 'http://localhost:4000';
+  if (typeof window !== 'undefined' && window.location) {
+    defaultUrl = `http://${window.location.hostname}:4000`;
+  }
+  return (
+    (typeof import.meta !== 'undefined' &&
+      (import.meta as any).env &&
+      (import.meta as any).env.VITE_WS_SERVER_URL) ||
+    defaultUrl
+  ).replace(/\/+$/, '');
+}
+
 export const storage = {
   getQuizzes(): Quiz[] {
     if (typeof window === 'undefined') return DEFAULT_QUIZZES;
@@ -45,17 +58,84 @@ export const storage = {
   saveQuiz(quiz: Quiz) {
     const quizzes = this.getQuizzes();
     const existingIndex = quizzes.findIndex((q) => q.id === quiz.id);
+    let updatedQuiz = { ...quiz, updatedAt: Date.now() };
     if (existingIndex >= 0) {
-      quizzes[existingIndex] = { ...quiz, updatedAt: Date.now() };
+      quizzes[existingIndex] = updatedQuiz;
     } else {
-      quizzes.unshift({ ...quiz, createdAt: quiz.createdAt || Date.now(), updatedAt: Date.now() });
+      updatedQuiz = { ...quiz, createdAt: quiz.createdAt || Date.now(), updatedAt: Date.now() };
+      quizzes.unshift(updatedQuiz);
     }
     this.saveQuizzes(quizzes);
+
+    // Asynchronously sync to backend server with silent fallback
+    this.syncQuizToServer(updatedQuiz);
   },
 
   deleteQuiz(quizId: string) {
     const quizzes = this.getQuizzes().filter((q) => q.id !== quizId);
     this.saveQuizzes(quizzes);
+
+    // Asynchronously delete on backend server with silent fallback
+    this.deleteQuizFromServer(quizId);
+  },
+
+  async syncWithServer(): Promise<Quiz[]> {
+    try {
+      const url = `${getServerApiUrl()}/api/quizzes`;
+      const res = await fetch(url, { signal: AbortSignal.timeout(3000) });
+      if (res.ok) {
+        const serverQuizzes = await res.json();
+        if (Array.isArray(serverQuizzes) && serverQuizzes.length > 0) {
+          // Merge server quizzes with local quizzes, preferring newer updatedAt
+          const localQuizzes = this.getQuizzes();
+          const quizMap = new Map<string, Quiz>();
+
+          localQuizzes.forEach((q) => quizMap.set(q.id, q));
+          serverQuizzes.forEach((sq: Quiz) => {
+            const local = quizMap.get(sq.id);
+            if (!local || (sq.updatedAt || 0) >= (local.updatedAt || 0)) {
+              quizMap.set(sq.id, sq);
+            }
+          });
+
+          const merged = Array.from(quizMap.values());
+          this.saveQuizzes(merged);
+          return merged;
+        }
+      }
+    } catch (e) {
+      // Silent fallback to local storage if server unreachable
+      console.warn('[QuizCraft Storage] Server quiz sync fallback to local storage:', e);
+    }
+    return this.getQuizzes();
+  },
+
+  async syncQuizToServer(quiz: Quiz): Promise<void> {
+    try {
+      const url = `${getServerApiUrl()}/api/quizzes`;
+      await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(quiz),
+        signal: AbortSignal.timeout(3000),
+      });
+    } catch (e) {
+      // Silent fallback
+      console.warn('[QuizCraft Storage] Server sync quiz failed, saved locally:', e);
+    }
+  },
+
+  async deleteQuizFromServer(quizId: string): Promise<void> {
+    try {
+      const url = `${getServerApiUrl()}/api/quizzes/${encodeURIComponent(quizId)}`;
+      await fetch(url, {
+        method: 'DELETE',
+        signal: AbortSignal.timeout(3000),
+      });
+    } catch (e) {
+      // Silent fallback
+      console.warn('[QuizCraft Storage] Server delete quiz failed, deleted locally:', e);
+    }
   },
 
   duplicateQuiz(quizId: string): Quiz | null {

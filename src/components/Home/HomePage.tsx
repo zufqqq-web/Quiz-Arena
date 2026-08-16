@@ -27,7 +27,12 @@ import {
   Smartphone,
   Cpu,
   Bot,
+  Settings,
 } from 'lucide-react';
+import { AISettingsModal } from '../Common/AISettingsModal';
+import { LanguageSwitcher } from '../Common/LanguageSwitcher';
+import { ThemePicker } from '../Common/ThemePicker';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 interface HomePageProps {
   quizzes: Quiz[];
@@ -48,9 +53,11 @@ export function HomePage({
   onJoinAsPlayer,
   onRefreshList,
 }: HomePageProps) {
+  const { t } = useLanguage();
   const [pinInput, setPinInput] = useState('');
   const [pinError, setPinError] = useState('');
   const [isMuted, setIsMuted] = useState(() => sounds.getMuted());
+  const [isAISettingsOpen, setIsAISettingsOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Statistics
@@ -104,7 +111,7 @@ export function HomePage({
         sounds.playCorrect();
         onRefreshList();
       } catch (err) {
-        alert('Ошибка при чтении JSON файла');
+        alert(t('library.importError'));
       }
     };
     reader.readAsText(file);
@@ -114,30 +121,30 @@ export function HomePage({
   return (
     <div id="quizcraft-home-page" className="min-h-screen bg-slate-950 text-slate-100 flex flex-col select-none font-sans relative overflow-x-hidden">
       {/* Background ambient lighting effects */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[350px] bg-gradient-to-b from-indigo-600/10 via-amber-500/5 to-transparent blur-3xl pointer-events-none -z-10" />
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[350px] bg-gradient-to-b from-indigo-600/10 via-[var(--accent-glow)] to-transparent blur-3xl pointer-events-none -z-10" />
       <div className="absolute top-[600px] right-0 w-[500px] h-[500px] bg-indigo-900/10 blur-[120px] pointer-events-none -z-10" />
-      <div className="absolute top-[1200px] left-0 w-[500px] h-[500px] bg-amber-600/5 blur-[120px] pointer-events-none -z-10" />
+      <div className="absolute top-[1200px] left-0 w-[500px] h-[500px] bg-[var(--accent-glow)] blur-[120px] pointer-events-none -z-10" />
 
       {/* Top Navbar */}
-      <header className="h-16 border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-md px-4 sm:px-8 flex items-center justify-between sticky top-0 z-40">
+      <header className="h-16 border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-md px-3 sm:px-8 flex items-center justify-between sticky top-0 z-40">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-300 text-slate-950 flex items-center justify-center font-black text-xl shadow-lg shadow-white/5 border border-white/20">
             QC
           </div>
           <div>
             <div className="text-base font-extrabold text-white tracking-tight flex items-center gap-2">
-              <span>QuizCraft</span>
-              <span className="text-[10px] font-mono uppercase bg-amber-500/10 text-amber-300 border border-amber-500/30 px-1.5 py-0.5 rounded">
-                v1.0
+              <span>{t('nav.brand')}</span>
+              <span className="text-[10px] font-mono uppercase bg-[var(--accent-subtle)] text-[var(--accent-300)] border border-[var(--accent-500)]/30 px-1.5 py-0.5 rounded">
+                {t('common.version')}
               </span>
             </div>
-            <p className="text-[11px] text-slate-400 hidden sm:block">Интерактивный конструктор и Квиз-Арена</p>
+            <p className="text-[11px] text-slate-400 hidden sm:block">{t('nav.subtitle')}</p>
           </div>
         </div>
 
         {/* Navigation & Controls */}
-        <div className="flex items-center gap-2 sm:gap-3">
-          <nav className="hidden md:flex items-center gap-1 mr-2 text-xs font-semibold text-slate-300">
+        <div className="flex items-center gap-1.5 sm:gap-2.5">
+          <nav className="hidden md:flex items-center gap-1 mr-1 text-xs font-semibold text-slate-300">
             <button
               onClick={() => {
                 sounds.playClick();
@@ -145,56 +152,78 @@ export function HomePage({
               }}
               className="px-3 py-1.5 rounded-lg hover:bg-slate-900 hover:text-white transition cursor-pointer"
             >
-              Библиотека ({totalQuizzes})
+              {t('nav.library', { count: totalQuizzes })}
             </button>
             <a
               href="#features-section"
               className="px-3 py-1.5 rounded-lg hover:bg-slate-900 hover:text-white transition cursor-pointer"
             >
-              Возможности
+              {t('nav.features')}
             </a>
             <a
               href="#how-it-works-section"
               className="px-3 py-1.5 rounded-lg hover:bg-slate-900 hover:text-white transition cursor-pointer"
             >
-              Как это работает
+              {t('nav.howItWorks')}
             </a>
           </nav>
 
+          {/* Theme Switcher */}
+          <ThemePicker />
+
+          {/* Language Switcher */}
+          <LanguageSwitcher />
+
+          {/* Sound Toggle */}
           <button
             onClick={handleToggleSound}
-            className={`p-2.5 rounded-xl border transition cursor-pointer ${
+            className={`p-2 sm:p-2.5 rounded-xl border transition cursor-pointer ${
               isMuted
                 ? 'bg-slate-900 border-slate-800 text-slate-500 hover:text-slate-200'
                 : 'bg-slate-900 border-slate-800 text-emerald-400'
             }`}
-            title={isMuted ? 'Включить звук' : 'Выключить звук'}
+            title={isMuted ? t('common.soundOn') : t('common.soundOff')}
           >
             {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
           </button>
 
+          {/* AI Settings */}
+          <button
+            onClick={() => {
+              sounds.playClick();
+              setIsAISettingsOpen(true);
+            }}
+            className="p-2 sm:p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-indigo-300 hover:bg-slate-800 transition cursor-pointer"
+            title={t('common.aiSettings')}
+            aria-label={t('common.aiSettings')}
+          >
+            <Bot className="w-4 h-4" />
+          </button>
+
+          {/* Player Join Button */}
           <button
             id="nav-join-player-btn"
             onClick={() => {
               sounds.playClick();
               onJoinAsPlayer();
             }}
-            className="flex items-center gap-1.5 text-xs font-bold bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-800 px-3.5 py-2.5 rounded-xl transition cursor-pointer shadow-sm"
+            className="hidden xs:flex items-center gap-1.5 text-xs font-bold bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-800 px-3 py-2 sm:py-2.5 rounded-xl transition cursor-pointer shadow-sm"
           >
             <Gamepad2 className="w-4 h-4 text-indigo-400" />
-            <span className="hidden sm:inline">Войти как</span> Игрок
+            <span className="hidden sm:inline">{t('nav.joinAsPlayer')}</span>
           </button>
 
+          {/* Create Quiz Button */}
           <button
             id="nav-create-quiz-btn"
             onClick={() => {
               sounds.playClick();
               onCreateNewQuiz();
             }}
-            className="flex items-center gap-1.5 text-xs font-extrabold bg-slate-100 hover:bg-white text-slate-950 px-4 py-2.5 rounded-xl transition shadow-lg shadow-white/5 cursor-pointer"
+            className="flex items-center gap-1.5 text-xs font-extrabold bg-slate-100 hover:bg-white text-slate-950 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl transition shadow-lg shadow-white/5 cursor-pointer"
           >
             <Plus className="w-4 h-4" />
-            <span>Создать квиз</span>
+            <span className="hidden sm:inline">{t('nav.createQuiz')}</span>
           </button>
         </div>
       </header>
@@ -204,21 +233,21 @@ export function HomePage({
         {/* ================= HERO SECTION ================= */}
         <section id="hero-section" className="relative flex flex-col items-center text-center space-y-6 pt-4 sm:pt-8">
           {/* Eyebrow Badge */}
-          <div className="inline-flex items-center gap-2 text-xs font-bold text-amber-300 bg-amber-950/50 border border-amber-800/60 px-4 py-1.5 rounded-full shadow-inner animate-in fade-in duration-300">
-            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-            <span>Платформа для живых викторин, тестов и опросов</span>
+          <div className="inline-flex items-center gap-2 text-xs font-bold text-[var(--accent-300)] bg-[var(--accent-subtle)] border border-[var(--accent-500)]/40 px-4 py-1.5 rounded-full shadow-inner animate-in fade-in duration-300">
+            <Sparkles className="w-3.5 h-3.5 text-[var(--accent-400)]" />
+            <span>{t('home.heroBadge')}</span>
           </div>
 
           {/* Main Title */}
           <div className="space-y-4 max-w-3xl">
             <h1 className="text-3xl sm:text-5xl md:text-6xl font-black text-white tracking-tight leading-[1.1]">
-              Создавайте викторины. <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-orange-400 to-rose-400">
-                Зажигайте арену.
+              {t('home.heroTitle1')} <br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[var(--accent-grad-from)] via-[var(--accent-500)] to-[var(--accent-grad-to)]">
+                {t('home.heroTitle2')}
               </span>
             </h1>
             <p className="text-sm sm:text-base md:text-lg text-slate-400 max-w-2xl mx-auto leading-relaxed">
-              Полноценный конструктор интерактивных квизов и многопользовательская комната в реальном времени. 7 форматов вопросов, карточки усилений, боевой режим со стриками и подробная аналитика.
+              {t('home.heroDesc')}
             </p>
           </div>
 
@@ -240,7 +269,7 @@ export function HomePage({
                     setPinInput(e.target.value);
                     if (pinError) setPinError('');
                   }}
-                  placeholder="Введите PIN (например 847291)"
+                  placeholder={t('home.pinPlaceholder')}
                   className="w-full bg-transparent text-lg sm:text-xl font-mono font-bold text-white placeholder:text-slate-500 focus:outline-none"
                 />
               </div>
@@ -249,7 +278,7 @@ export function HomePage({
                 type="submit"
                 className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-bold text-sm transition shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2 cursor-pointer shrink-0"
               >
-                <span>Присоединиться</span>
+                <span>{t('home.enterArena')}</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
             </form>
@@ -266,7 +295,7 @@ export function HomePage({
                 className="px-5 py-3 rounded-2xl bg-slate-100 hover:bg-white text-slate-950 text-xs sm:text-sm font-extrabold transition shadow-lg shadow-white/5 flex items-center gap-2 cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
-                <span>Создать новый квиз</span>
+                <span>{t('home.createFirstQuiz')}</span>
               </button>
 
               <button
@@ -277,18 +306,18 @@ export function HomePage({
                 }}
                 className="px-5 py-3 rounded-2xl bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-800 text-xs sm:text-sm font-bold transition flex items-center gap-2 cursor-pointer"
               >
-                <Layers className="w-4 h-4 text-amber-400" />
-                <span>Библиотека квизов ({totalQuizzes})</span>
+                <Layers className="w-4 h-4 text-[var(--accent-400)]" />
+                <span>{t('home.viewAll')} ({totalQuizzes})</span>
               </button>
 
               <button
                 id="hero-demo-host-btn"
                 onClick={handleQuickDemoHost}
                 className="px-4 py-3 rounded-2xl bg-slate-900/60 hover:bg-slate-800/80 text-slate-300 border border-slate-800/80 text-xs sm:text-sm font-semibold transition flex items-center gap-2 cursor-pointer"
-                title="Быстрый запуск игры с готовым квизом"
+                title={t('home.quickHost')}
               >
                 <Play className="w-3.5 h-3.5 fill-slate-300" />
-                <span>Быстрый тест (Хост)</span>
+                <span>{t('home.quickHost')}</span>
               </button>
             </div>
           </div>
@@ -298,162 +327,38 @@ export function HomePage({
         <section id="stats-section" className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <div className="bg-slate-900/80 border border-slate-800/90 rounded-3xl p-5 flex flex-col justify-between shadow-sm">
             <div className="flex items-center justify-between text-slate-400 mb-2">
-              <span className="text-xs font-semibold uppercase tracking-wider">Квизов создано</span>
-              <Layers className="w-4 h-4 text-amber-400" />
+              <span className="text-xs font-semibold uppercase tracking-wider">{t('home.statQuizzes')}</span>
+              <Layers className="w-4 h-4 text-[var(--accent-400)]" />
             </div>
             <div className="text-2xl sm:text-3xl font-black text-white font-mono">{totalQuizzes}</div>
-            <p className="text-[11px] text-slate-500 mt-1">Доступно в хранилище</p>
+            <p className="text-[11px] text-slate-500 mt-1">{t('common.saved')}</p>
           </div>
 
           <div className="bg-slate-900/80 border border-slate-800/90 rounded-3xl p-5 flex flex-col justify-between shadow-sm">
             <div className="flex items-center justify-between text-slate-400 mb-2">
-              <span className="text-xs font-semibold uppercase tracking-wider">Всего вопросов</span>
+              <span className="text-xs font-semibold uppercase tracking-wider">{t('home.statQuestions')}</span>
               <HelpCircle className="w-4 h-4 text-indigo-400" />
             </div>
             <div className="text-2xl sm:text-3xl font-black text-white font-mono">{totalQuestions}</div>
-            <p className="text-[11px] text-slate-500 mt-1">Готово к запуску</p>
+            <p className="text-[11px] text-slate-500 mt-1">{t('common.ready') || 'Ready to play'}</p>
           </div>
 
           <div className="bg-slate-900/80 border border-slate-800/90 rounded-3xl p-5 flex flex-col justify-between shadow-sm">
             <div className="flex items-center justify-between text-slate-400 mb-2">
-              <span className="text-xs font-semibold uppercase tracking-wider">Форматы вопросов</span>
+              <span className="text-xs font-semibold uppercase tracking-wider">{t('home.statFormats')}</span>
               <Sparkles className="w-4 h-4 text-purple-400" />
             </div>
-            <div className="text-2xl sm:text-3xl font-black text-white font-mono">7 типов</div>
-            <p className="text-[11px] text-slate-500 mt-1">Один, Мульти, Текст, Число, Опрос...</p>
+            <div className="text-2xl sm:text-3xl font-black text-white font-mono">7 {t('common.formats') || 'types'}</div>
+            <p className="text-[11px] text-slate-500 mt-1">Single, Multi, Text, Order...</p>
           </div>
 
           <div className="bg-slate-900/80 border border-slate-800/90 rounded-3xl p-5 flex flex-col justify-between shadow-sm">
             <div className="flex items-center justify-between text-slate-400 mb-2">
-              <span className="text-xs font-semibold uppercase tracking-wider">Мультиплеер</span>
+              <span className="text-xs font-semibold uppercase tracking-wider">{t('home.statMultiplayer')}</span>
               <Flame className="w-4 h-4 text-orange-400" />
             </div>
-            <div className="text-2xl sm:text-3xl font-black text-white font-mono">Арена + Боты</div>
-            <p className="text-[11px] text-slate-500 mt-1">Стрики, 50/50, Щиты, 2x Очки</p>
-          </div>
-        </section>
-
-        {/* ================= QUICK ACTIONS BENTO GRID ================= */}
-        <section id="quick-actions-section" className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-lg">⚡</span>
-              <h2 className="text-lg sm:text-xl font-bold text-white">Быстрые действия</h2>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Action 1: Create New */}
-            <div
-              onClick={() => {
-                sounds.playClick();
-                onCreateNewQuiz();
-              }}
-              className="group bg-gradient-to-br from-slate-900 to-slate-900/60 border border-slate-800 hover:border-slate-600 rounded-3xl p-5 flex flex-col justify-between cursor-pointer transition-all duration-200 shadow-sm hover:shadow-xl hover:-translate-y-0.5"
-            >
-              <div className="space-y-3">
-                <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-300 flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
-                  <Plus className="w-6 h-6" />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-white group-hover:text-amber-300 transition-colors">
-                    Конструктор квиза
-                  </h3>
-                  <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-                    Создайте викторину с нуля: настройте время, баллы, типы вопросов и медиа.
-                  </p>
-                </div>
-              </div>
-              <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center gap-1 text-xs font-semibold text-amber-400">
-                <span>Открыть редактор</span>
-                <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
-              </div>
-            </div>
-
-            {/* Action 2: Open Library */}
-            <div
-              onClick={() => {
-                sounds.playClick();
-                onOpenLibrary();
-              }}
-              className="group bg-gradient-to-br from-slate-900 to-slate-900/60 border border-slate-800 hover:border-slate-600 rounded-3xl p-5 flex flex-col justify-between cursor-pointer transition-all duration-200 shadow-sm hover:shadow-xl hover:-translate-y-0.5"
-            >
-              <div className="space-y-3">
-                <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
-                  <Layers className="w-6 h-6" />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-white group-hover:text-indigo-300 transition-colors">
-                    Библиотека квизов
-                  </h3>
-                  <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-                    Управляйте тестами, ищите по категориям, дублируйте и запускайте.
-                  </p>
-                </div>
-              </div>
-              <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center gap-1 text-xs font-semibold text-indigo-400">
-                <span>Перейти в каталог</span>
-                <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
-              </div>
-            </div>
-
-            {/* Action 3: Player Join */}
-            <div
-              onClick={() => {
-                sounds.playClick();
-                onJoinAsPlayer();
-              }}
-              className="group bg-gradient-to-br from-slate-900 to-slate-900/60 border border-slate-800 hover:border-slate-600 rounded-3xl p-5 flex flex-col justify-between cursor-pointer transition-all duration-200 shadow-sm hover:shadow-xl hover:-translate-y-0.5"
-            >
-              <div className="space-y-3">
-                <div className="w-12 h-12 rounded-2xl bg-purple-500/10 border border-purple-500/20 text-purple-300 flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
-                  <Gamepad2 className="w-6 h-6" />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-white group-hover:text-purple-300 transition-colors">
-                    Экран игрока
-                  </h3>
-                  <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-                    Подключитесь к комнате с устройства, выберите аватар и участвуйте в битве.
-                  </p>
-                </div>
-              </div>
-              <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center gap-1 text-xs font-semibold text-purple-400">
-                <span>Войти по PIN</span>
-                <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
-              </div>
-            </div>
-
-            {/* Action 4: Import JSON */}
-            <div
-              onClick={() => fileInputRef.current?.click()}
-              className="group bg-gradient-to-br from-slate-900 to-slate-900/60 border border-slate-800 hover:border-slate-600 rounded-3xl p-5 flex flex-col justify-between cursor-pointer transition-all duration-200 shadow-sm hover:shadow-xl hover:-translate-y-0.5"
-            >
-              <div className="space-y-3">
-                <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
-                  <Upload className="w-6 h-6" />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-white group-hover:text-emerald-300 transition-colors">
-                    Импорт из JSON
-                  </h3>
-                  <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-                    Загрузите готовый набор вопросов из файла или перенесите квиз с другого ПК.
-                  </p>
-                </div>
-              </div>
-              <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center gap-1 text-xs font-semibold text-emerald-400">
-                <span>Выбрать файл JSON</span>
-                <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
-              </div>
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleImportJSON}
-                accept=".json"
-                className="hidden"
-              />
-            </div>
+            <div className="text-2xl sm:text-3xl font-black text-white font-mono">Arena + Bots</div>
+            <p className="text-[11px] text-slate-500 mt-1">50/50, Shields, Double pts</p>
           </div>
         </section>
 
@@ -462,16 +367,16 @@ export function HomePage({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-lg">🎯</span>
-              <h2 className="text-lg sm:text-xl font-bold text-white">Последние созданные квизы</h2>
+              <h2 className="text-lg sm:text-xl font-bold text-white">{t('home.recentTitle')}</h2>
             </div>
             <button
               onClick={() => {
                 sounds.playClick();
                 onOpenLibrary();
               }}
-              className="text-xs font-semibold text-amber-400 hover:text-amber-300 flex items-center gap-1 transition cursor-pointer"
+              className="text-xs font-semibold text-[var(--accent-300)] hover:text-[var(--accent-400)] flex items-center gap-1 transition cursor-pointer"
             >
-              <span>Смотреть все ({totalQuizzes})</span>
+              <span>{t('home.viewAll')} ({totalQuizzes})</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -488,15 +393,15 @@ export function HomePage({
                       {quiz.coverEmoji || '🎯'}
                     </span>
                     <span className="text-[10px] font-semibold text-slate-400 bg-slate-950 border border-slate-800 px-2.5 py-1 rounded-full">
-                      {quiz.questions.length} вопр.
+                      {quiz.questions.length} {t('aiTemplate.questionsSuffix')}
                     </span>
                   </div>
 
-                  <h3 className="text-sm sm:text-base font-bold text-white group-hover:text-amber-300 transition-colors line-clamp-1 mb-1">
+                  <h3 className="text-sm sm:text-base font-bold text-white group-hover:text-[var(--accent-300)] transition-colors line-clamp-1 mb-1">
                     {quiz.title}
                   </h3>
                   <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">
-                    {quiz.description || 'Без описания'}
+                    {quiz.description || t('quizMeta.descriptionPlaceholder')}
                   </p>
                 </div>
 
@@ -507,7 +412,7 @@ export function HomePage({
                       onEditQuiz(quiz.id);
                     }}
                     className="p-2 hover:bg-slate-800 text-slate-400 hover:text-white rounded-xl transition cursor-pointer"
-                    title="Редактировать"
+                    title={t('common.edit')}
                   >
                     <Edit3 className="w-4 h-4" />
                   </button>
@@ -520,7 +425,7 @@ export function HomePage({
                     className="flex items-center gap-1.5 text-xs font-bold bg-slate-100 hover:bg-white text-slate-950 px-3.5 py-1.5 rounded-xl transition shadow-sm cursor-pointer"
                   >
                     <Play className="w-3 h-3 fill-slate-950" />
-                    <span>Хост</span>
+                    <span>{t('common.host')}</span>
                   </button>
                 </div>
               </div>
@@ -528,152 +433,120 @@ export function HomePage({
 
             {recentQuizzes.length === 0 && (
               <div className="col-span-full text-center py-12 bg-slate-900/40 border border-dashed border-slate-800 rounded-3xl space-y-3">
-                <p className="text-sm text-slate-400">У вас пока нет квизов. Создайте первый прямо сейчас!</p>
+                <p className="text-sm text-slate-400">{t('home.noQuizzesYet')}</p>
                 <button
                   onClick={onCreateNewQuiz}
-                  className="px-4 py-2 rounded-xl bg-slate-100 text-slate-950 text-xs font-bold hover:bg-white transition"
+                  className="px-4 py-2 rounded-xl bg-slate-100 text-slate-950 text-xs font-bold hover:bg-white transition cursor-pointer"
                 >
-                  Создать квиз
+                  {t('home.createFirstQuiz')}
                 </button>
               </div>
             )}
           </div>
         </section>
 
-        {/* ================= PLATFORM FEATURES (BENTO GRID) ================= */}
+        {/* ================= PLATFORM FEATURES ================= */}
         <section id="features-section" className="space-y-6 pt-4">
           <div className="text-center max-w-2xl mx-auto space-y-2">
             <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-              Возможности QuizCraft
+              {t('home.featuresTitle')}
             </h2>
             <p className="text-xs sm:text-sm text-slate-400">
-              Всё необходимое для проведения увлекательных интеллектуальных баталий в аудитории или онлайн.
+              {t('home.featuresDesc')}
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Feature 1: 7 Question Formats */}
+            {/* Feature 1 */}
             <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-6 space-y-3">
               <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center">
                 <HelpCircle className="w-5 h-5" />
               </div>
-              <h3 className="text-base font-bold text-white">7 разнообразных форматов</h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Один выбор, чекбоксы, Правда/Ложь, ввод текста, числовые ответы с погрешностью, сортировка хронологии и опросы мнений.
-              </p>
+              <h3 className="text-base font-bold text-white">{t('home.f1Title')}</h3>
+              <p className="text-xs text-slate-400 leading-relaxed">{t('home.f1Desc')}</p>
             </div>
 
-            {/* Feature 2: Battle Royale & Multipliers */}
+            {/* Feature 2 */}
             <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-6 space-y-3">
               <div className="w-10 h-10 rounded-2xl bg-orange-500/10 border border-orange-500/20 text-orange-400 flex items-center justify-center">
                 <Flame className="w-5 h-5" />
               </div>
-              <h3 className="text-base font-bold text-white">Боевой режим и стрики</h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Динамические множители (x1.1, x1.25, x1.5) за серии правильных ответов, перемещение в рейтинге и азарт за первое место.
-              </p>
+              <h3 className="text-base font-bold text-white">{t('home.f2Title')}</h3>
+              <p className="text-xs text-slate-400 leading-relaxed">{t('home.f2Desc')}</p>
             </div>
 
-            {/* Feature 3: Power-ups */}
+            {/* Feature 3 */}
             <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-6 space-y-3">
               <div className="w-10 h-10 rounded-2xl bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center justify-center">
                 <Zap className="w-5 h-5" />
               </div>
-              <h3 className="text-base font-bold text-white">Карточки усилений</h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Игроки могут тактически использовать 50/50, 2x удвоение очков или активировать Щит для защиты серии от сгорания.
-              </p>
+              <h3 className="text-base font-bold text-white">{t('home.f3Title')}</h3>
+              <p className="text-xs text-slate-400 leading-relaxed">{t('home.f3Desc')}</p>
             </div>
 
-            {/* Feature 4: Smart Bot Simulator */}
+            {/* Feature 4 */}
             <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-6 space-y-3">
               <div className="w-10 h-10 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 flex items-center justify-center">
                 <Bot className="w-5 h-5" />
               </div>
-              <h3 className="text-base font-bold text-white">Симулятор виртуальных ботов</h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Добавляйте реалистичных ботов с разным временем реакции и точностью, чтобы протестировать квиз без других людей.
-              </p>
+              <h3 className="text-base font-bold text-white">{t('home.f4Title')}</h3>
+              <p className="text-xs text-slate-400 leading-relaxed">{t('home.f4Desc')}</p>
             </div>
 
-            {/* Feature 5: Author Analytics */}
+            {/* Feature 5 */}
             <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-6 space-y-3">
-              <div className="w-10 h-10 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-2xl bg-[var(--accent-subtle)] border border-[var(--accent-500)]/30 text-[var(--accent-300)] flex items-center justify-center">
                 <BarChart3 className="w-5 h-5" />
               </div>
-              <h3 className="text-base font-bold text-white">Глубокая аналитика автора</h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Автоматическое выявление сложных и простых вопросов, графики распределения ответов и экспорт подробного отчёта в CSV.
-              </p>
+              <h3 className="text-base font-bold text-white">{t('home.f5Title')}</h3>
+              <p className="text-xs text-slate-400 leading-relaxed">{t('home.f5Desc')}</p>
             </div>
 
-            {/* Feature 6: Sound & Live Reactions */}
+            {/* Feature 6 */}
             <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-6 space-y-3">
               <div className="w-10 h-10 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center">
                 <Volume2 className="w-5 h-5" />
               </div>
-              <h3 className="text-base font-bold text-white">Звуки и живые реакции</h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Синтезированное звуковое сопровождение таймера и подиума, а также всплывающие эмодзи-реакции прямо во время раунда.
-              </p>
+              <h3 className="text-base font-bold text-white">{t('home.f6Title')}</h3>
+              <p className="text-xs text-slate-400 leading-relaxed">{t('home.f6Desc')}</p>
             </div>
           </div>
         </section>
 
-        {/* ================= HOW IT WORKS (STEP BY STEP) ================= */}
+        {/* ================= HOW IT WORKS ================= */}
         <section id="how-it-works-section" className="space-y-6 pt-4">
           <div className="text-center max-w-2xl mx-auto space-y-2">
             <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-              Как это работает
+              {t('home.howTitle')}
             </h2>
             <p className="text-xs sm:text-sm text-slate-400">
-              Всего 4 простых шага от идеи до интерактивной игры со зрителями.
+              {t('home.howDesc')}
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Step 1 */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <div className="bg-slate-900/70 border border-slate-800 rounded-3xl p-5 relative space-y-3">
-              <div className="w-8 h-8 rounded-full bg-slate-800 border border-slate-700 text-amber-400 font-mono font-bold text-sm flex items-center justify-center">
-                01
+              <div className="w-8 h-8 rounded-full bg-slate-800 border border-slate-700 text-[var(--accent-400)] font-mono font-bold text-sm flex items-center justify-center">
+                {t('home.step1Num')}
               </div>
-              <h3 className="text-base font-bold text-white">Создайте квиз</h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Добавьте вопросы в интуитивном редакторе, настройте лимиты времени, баллы и загрузите медиа.
-              </p>
+              <h3 className="text-base font-bold text-white">{t('home.step1Title')}</h3>
+              <p className="text-xs text-slate-400 leading-relaxed">{t('home.step1Desc')}</p>
             </div>
 
-            {/* Step 2 */}
             <div className="bg-slate-900/70 border border-slate-800 rounded-3xl p-5 relative space-y-3">
               <div className="w-8 h-8 rounded-full bg-slate-800 border border-slate-700 text-indigo-400 font-mono font-bold text-sm flex items-center justify-center">
-                02
+                {t('home.step2Num')}
               </div>
-              <h3 className="text-base font-bold text-white">Запустите лобби</h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Выведите экран хоста на проектор или в Zoom/Discord и покажите сгенерированный 6-значный PIN.
-              </p>
+              <h3 className="text-base font-bold text-white">{t('home.step2Title')}</h3>
+              <p className="text-xs text-slate-400 leading-relaxed">{t('home.step2Desc')}</p>
             </div>
 
-            {/* Step 3 */}
             <div className="bg-slate-900/70 border border-slate-800 rounded-3xl p-5 relative space-y-3">
               <div className="w-8 h-8 rounded-full bg-slate-800 border border-slate-700 text-purple-400 font-mono font-bold text-sm flex items-center justify-center">
-                03
+                {t('home.step3Num')}
               </div>
-              <h3 className="text-base font-bold text-white">Участники играют</h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Игроки вводят PIN со смартфонов, отвечают на скорость, шлют реакции и используют усиления.
-              </p>
-            </div>
-
-            {/* Step 4 */}
-            <div className="bg-slate-900/70 border border-slate-800 rounded-3xl p-5 relative space-y-3">
-              <div className="w-8 h-8 rounded-full bg-slate-800 border border-slate-700 text-emerald-400 font-mono font-bold text-sm flex items-center justify-center">
-                04
-              </div>
-              <h3 className="text-base font-bold text-white">Итоги и аналитика</h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Торжественный подиум победителей с конфетти и подробная статистика ответов для ведущего.
-              </p>
+              <h3 className="text-base font-bold text-white">{t('home.step3Title')}</h3>
+              <p className="text-xs text-slate-400 leading-relaxed">{t('home.step3Desc')}</p>
             </div>
           </div>
         </section>
@@ -682,10 +555,10 @@ export function HomePage({
         <section className="bg-gradient-to-r from-slate-900 via-indigo-950/40 to-slate-900 border border-slate-800 rounded-3xl p-8 sm:p-12 text-center space-y-6 shadow-2xl relative overflow-hidden">
           <div className="max-w-xl mx-auto space-y-3 z-10">
             <h2 className="text-2xl sm:text-4xl font-black text-white tracking-tight">
-              Готовы провести свой квиз?
+              {t('home.ctaTitle')}
             </h2>
             <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
-              Запустите готовый тест или соберите собственный за пару минут. Никакой сложной регистрации.
+              {t('home.ctaDesc')}
             </p>
           </div>
 
@@ -698,7 +571,7 @@ export function HomePage({
               className="px-6 py-3.5 rounded-2xl bg-slate-100 hover:bg-white text-slate-950 font-extrabold text-sm transition shadow-xl cursor-pointer flex items-center gap-2"
             >
               <Plus className="w-4 h-4" />
-              <span>Создать квиз</span>
+              <span>{t('home.ctaBtn')}</span>
             </button>
 
             <button
@@ -708,8 +581,8 @@ export function HomePage({
               }}
               className="px-6 py-3.5 rounded-2xl bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-800 font-bold text-sm transition cursor-pointer flex items-center gap-2"
             >
-              <Layers className="w-4 h-4 text-amber-400" />
-              <span>Открыть библиотеку</span>
+              <Layers className="w-4 h-4 text-[var(--accent-400)]" />
+              <span>{t('home.viewAll')}</span>
             </button>
           </div>
         </section>
@@ -720,10 +593,15 @@ export function HomePage({
         <div className="flex items-center justify-center gap-2 text-slate-400 font-semibold">
           <span>QuizCraft</span>
           <span>•</span>
-          <span>Интерактивный конструктор и Квиз-Арена</span>
+          <span>{t('nav.subtitle')}</span>
         </div>
-        <p>Все данные сохраняются локально в вашем браузере (LocalStorage). Доступно в офлайн-режиме.</p>
+        <p>{t('home.madeFor')}</p>
       </footer>
+
+      <AISettingsModal
+        isOpen={isAISettingsOpen}
+        onClose={() => setIsAISettingsOpen(false)}
+      />
     </div>
   );
 }

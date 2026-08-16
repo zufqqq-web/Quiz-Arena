@@ -26,6 +26,14 @@ class SyncBusFacade {
   public broadcast(msg: SyncMessage): void {
     this.transport.broadcast(msg);
   }
+
+  public joinRoom(roomCode: string, playerId?: string): void {
+    this.transport.joinRoom?.(roomCode, playerId);
+  }
+
+  public leaveRoom(roomCode: string): void {
+    this.transport.leaveRoom?.(roomCode);
+  }
 }
 
 export const syncBus = new SyncBusFacade();

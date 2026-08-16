@@ -31,6 +31,12 @@ export interface RoomTransport {
   /** Broadcast a message to other participants in the room/bus */
   broadcast(msg: SyncMessage): void;
 
+  /** Explicitly join a room on the server/transport */
+  joinRoom?(roomCode: string, playerId?: string): void;
+
+  /** Explicitly leave a room on the server/transport */
+  leaveRoom?(roomCode: string): void;
+
   /** Clean up resources and close channels */
   disconnect(): void;
 }

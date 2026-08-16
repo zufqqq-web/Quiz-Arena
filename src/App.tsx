@@ -10,11 +10,22 @@ import { HostView } from './components/Host/HostView';
 import { PlayerView } from './components/Player/PlayerView';
 import { ErrorBoundary } from './components/Common/ErrorBoundary';
 import { screenVariants } from './utils/motionVariants';
+import { LanguageProvider, useLanguage } from './contexts/LanguageContext';
+import { ThemeProvider } from './contexts/ThemeContext';
+
 
 // 1. Home Page Route Component
 function HomeRoute() {
   const navigate = useNavigate();
   const [quizzes, setQuizzes] = useState<Quiz[]>(() => storage.getQuizzes());
+
+  useEffect(() => {
+    storage.syncWithServer().then((list) => {
+      if (list && list.length > 0) {
+        setQuizzes(list);
+      }
+    });
+  }, []);
 
   const refreshList = () => {
     setQuizzes(storage.getQuizzes());
@@ -71,6 +82,14 @@ function HomeRoute() {
 function LibraryRoute() {
   const navigate = useNavigate();
   const [quizzes, setQuizzes] = useState<Quiz[]>(() => storage.getQuizzes());
+
+  useEffect(() => {
+    storage.syncWithServer().then((list) => {
+      if (list && list.length > 0) {
+        setQuizzes(list);
+      }
+    });
+  }, []);
 
   const refreshList = () => {
     setQuizzes(storage.getQuizzes());
@@ -184,10 +203,12 @@ function HostRoute() {
     }
   }, [quizOrRoomId, navigate]);
 
+  const { t } = useLanguage();
+
   if (!quiz) {
     return (
       <div className="flex h-screen items-center justify-center bg-slate-950 text-slate-400">
-        Подготовка комнаты викторины...
+        {t('common.loading')}
       </div>
     );
   }
@@ -253,11 +274,17 @@ function AnimatedAppRoutes() {
 export default function App() {
   return (
     <ErrorBoundary>
-      <BrowserRouter>
-        <div className="min-h-screen bg-slate-950 font-sans text-slate-100 antialiased selection:bg-slate-800 selection:text-white">
-          <AnimatedAppRoutes />
-        </div>
-      </BrowserRouter>
+      <LanguageProvider>
+        <ThemeProvider>
+          <BrowserRouter>
+            <div className="min-h-screen bg-slate-950 font-sans text-slate-100 antialiased selection:bg-slate-800 selection:text-white">
+              <AnimatedAppRoutes />
+            </div>
+          </BrowserRouter>
+        </ThemeProvider>
+      </LanguageProvider>
     </ErrorBoundary>
   );
 }
+
+

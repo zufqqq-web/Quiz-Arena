@@ -1,11 +1,19 @@
 import { Question } from '../types';
+import { getAIConfig } from '../utils/aiConfig';
 
 export interface GenerateQuizParams {
   topic: string;
   questionCount?: number;
   difficulty?: 'easy' | 'medium' | 'hard';
-  language?: 'ru' | 'en';
+  language?: 'ru' | 'en' | 'uz';
 }
+
+export interface GenerateQuizResult {
+  questions: Question[];
+  usedFallback: boolean;
+  errorReason?: string;
+}
+
 
 export interface TemplatePack {
   id: string;
@@ -215,23 +223,75 @@ export const CURATED_TEMPLATE_PACKS: TemplatePack[] = [
 ];
 
 /**
- * Service contract for Question generation.
- * Currently serves curated high-quality template packs.
- * When a backend AI endpoint is connected, this function will call the remote API.
+ * Service for Question generation with real AI models (Gemini / OpenAI / Groq / etc.)
+ * Calls backend /api/generate-quiz endpoint with per-browser AI config.
+ * Falls back seamlessly to curated template packs if server is offline or not configured,
+ * reporting fallback status and errorReason to callers.
  */
-export async function generateQuizWithAI(params: GenerateQuizParams): Promise<Question[]> {
-  // Check if there is a matching template pack by topic
+export async function generateQuizWithAI(params: GenerateQuizParams): Promise<GenerateQuizResult> {
+  const serverUrl = (
+    (typeof import.meta !== 'undefined' &&
+      import.meta.env &&
+      import.meta.env.VITE_API_SERVER_URL) ||
+    'http://localhost:4000'
+  ).replace(/\/+$/, '');
+
+  const aiConfig = getAIConfig();
+  let failureReason: string | undefined;
+
+  try {
+    const response = await fetch(`${serverUrl}/api/generate-quiz`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        topic: params.topic,
+        questionCount: params.questionCount || 5,
+        difficulty: params.difficulty || 'medium',
+        language: params.language || 'ru',
+        aiConfig,
+      }),
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      if (Array.isArray(data?.questions) && data.questions.length > 0) {
+        console.log(`[QuizCraft AI] Generated ${data.questions.length} questions from remote AI model`);
+        return {
+          questions: cloneQuestionsWithNewIds(data.questions),
+          usedFallback: false,
+        };
+      } else {
+        failureReason = 'Ответ модели не содержал массива вопросов';
+      }
+    } else {
+      let errText = '';
+      try {
+        const errJson = await response.json();
+        errText = errJson?.error || JSON.stringify(errJson);
+      } catch {
+        errText = await response.text();
+      }
+      failureReason = `Сервер вернул статус ${response.status}: ${errText}`;
+      console.warn(`[QuizCraft AI] Remote AI generation returned ${response.status}: ${errText}. Falling back to curated templates.`);
+    }
+  } catch (err: any) {
+    failureReason = `Не удалось связаться с сервером (${serverUrl}): ${err.message || 'Сеть недоступна'}`;
+    console.warn(`[QuizCraft AI] Server unreachable (${err.message}). Using curated templates fallback.`);
+  }
+
+  // Graceful offline/demo fallback with explicit flag and reason
   const normalized = params.topic.trim().toLowerCase();
   const pack = CURATED_TEMPLATE_PACKS.find(
     (p) => p.id.includes(normalized) || p.category.toLowerCase().includes(normalized)
   );
 
-  if (pack) {
-    return cloneQuestionsWithNewIds(pack.questions);
-  }
+  const fallbackQuestions = pack ? pack.questions : CURATED_TEMPLATE_PACKS[0].questions;
 
-  // Fallback to general smart pack
-  return cloneQuestionsWithNewIds(CURATED_TEMPLATE_PACKS[0].questions);
+  return {
+    questions: cloneQuestionsWithNewIds(fallbackQuestions),
+    usedFallback: true,
+    errorReason: failureReason,
+  };
 }
 
 export function cloneQuestionsWithNewIds(questions: Question[]): Question[] {
@@ -244,3 +304,4 @@ export function cloneQuestionsWithNewIds(questions: Question[]): Question[] {
     })),
   }));
 }
+

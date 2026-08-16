@@ -4,6 +4,7 @@ import { Question, Player } from '../../types';
 import { Users, ArrowRight } from 'lucide-react';
 import { sounds } from '../../utils/sound';
 import { staggerContainer, staggerItem } from '../../utils/motionVariants';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 interface HostQuestionActiveProps {
   question: Question;
@@ -31,6 +32,7 @@ export function HostQuestionActive({
   players,
   onTimeUpOrSkip,
 }: HostQuestionActiveProps) {
+  const { t } = useLanguage();
   const playerList = Object.values(players);
   const answeredCount = playerList.filter(
     (p) => p.answers && p.answers[questionIndex] !== undefined
@@ -46,26 +48,28 @@ export function HostQuestionActive({
   const progressPercent = Math.max(0, Math.min(100, (timeRemaining / totalTime) * 100));
   const isUrgent = timeRemaining <= 5;
 
+  const getTypeName = (type: Question['type']) => {
+    switch (type) {
+      case 'boolean': return t('editor.trueFalse');
+      case 'multiple': return t('editor.multipleChoice');
+      case 'order': return t('editor.orderSequence');
+      case 'text': return t('editor.textInput');
+      case 'poll': return t('editor.pollSurvey');
+      case 'number': return t('editor.numberInput');
+      default: return t('editor.singleChoice');
+    }
+  };
+
   return (
     <div id="host-question-active" className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between p-6 select-none relative overflow-hidden">
       {/* Top Status Header */}
       <div className="flex items-center justify-between z-10">
         <div className="flex items-center gap-3">
           <span className="text-xs font-bold text-slate-400 uppercase tracking-wider bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-800">
-            Вопрос {questionIndex + 1} из {totalQuestions}
+            {t('host.questionCounter', { current: questionIndex + 1, total: totalQuestions })}
           </span>
           <span className="text-xs text-slate-500 font-medium">
-            {question.type === 'boolean'
-              ? 'Правда / Ложь'
-              : question.type === 'multiple'
-              ? 'Несколько ответов'
-              : question.type === 'order'
-              ? 'Правильный порядок'
-              : question.type === 'text'
-              ? 'Ввод текста'
-              : question.type === 'poll'
-              ? 'Опрос аудитории'
-              : 'Один верный ответ'}
+            {getTypeName(question.type)}
           </span>
         </div>
 
@@ -74,7 +78,7 @@ export function HostQuestionActive({
           <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 px-3.5 py-1.5 rounded-xl text-xs font-bold">
             <Users className="w-4 h-4 text-slate-400" />
             <span className={answeredCount === playerList.length ? 'text-emerald-400' : 'text-white'}>
-              {answeredCount} / {playerList.length} ответили
+              {t('host.answeredCount', { count: answeredCount, total: playerList.length })}
             </span>
           </div>
 
@@ -85,7 +89,7 @@ export function HostQuestionActive({
             }}
             className="flex items-center gap-1.5 text-xs font-bold bg-slate-800 hover:bg-slate-700 text-white px-3.5 py-1.5 rounded-xl border border-slate-700 transition cursor-pointer"
           >
-            <span>Вскрыть ответы</span>
+            <span>{t('host.revealAnswers')}</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
@@ -208,7 +212,11 @@ export function HostQuestionActive({
             className="grid grid-cols-2 gap-4"
           >
             {question.options.map((opt) => {
-              const isTrue = opt.text.toLowerCase().includes('правда') || opt.text.toLowerCase().includes('true');
+              const isTrue =
+                opt.text.toLowerCase().includes('правда') ||
+                opt.text.toLowerCase().includes('true') ||
+                opt.text.toLowerCase().includes('to\'g\'ri') ||
+                opt.text.toLowerCase().includes('haqiqat');
               return (
                 <motion.div
                   key={opt.id}
@@ -233,7 +241,7 @@ export function HostQuestionActive({
             animate={{ opacity: 1, y: 0 }}
             className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 text-center text-sm text-slate-300"
           >
-            <span className="text-amber-400 font-semibold">Игроки упорядочивают элементы на своих устройствах...</span>
+            <span className="text-[var(--accent-300)] font-semibold">{t('host.playersAnswering')}</span>
           </motion.div>
         )}
 
@@ -243,7 +251,7 @@ export function HostQuestionActive({
             animate={{ opacity: 1, y: 0 }}
             className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 text-center text-sm text-slate-300"
           >
-            <span className="text-pink-400 font-semibold">Игроки вводят точный текстовый ответ на своих экранах...</span>
+            <span className="text-pink-400 font-semibold">{t('host.playersAnswering')}</span>
           </motion.div>
         )}
 
@@ -253,7 +261,7 @@ export function HostQuestionActive({
             animate={{ opacity: 1, y: 0 }}
             className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 text-center text-sm text-slate-300"
           >
-            <span className="text-blue-400 font-semibold">Игроки вводят числовое значение на своих экранах...</span>
+            <span className="text-blue-400 font-semibold">{t('host.playersAnswering')}</span>
           </motion.div>
         )}
       </div>

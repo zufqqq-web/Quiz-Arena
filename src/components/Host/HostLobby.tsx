@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Player, Quiz } from '../../types';
-import { Play, Users, Bot, Volume2, VolumeX, Copy, Check, QrCode, ArrowLeft, Trash2 } from 'lucide-react';
+import { Play, Users, Bot, Volume2, VolumeX, Copy, Check, ArrowLeft, Trash2 } from 'lucide-react';
 import { sounds } from '../../utils/sound';
 import { generateBotPlayers } from '../../utils/botSimulator';
 import { buttonHoverTap } from '../../utils/motionVariants';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 interface HostLobbyProps {
   roomCode: string;
@@ -25,6 +26,7 @@ export function HostLobby({
   onKickPlayer,
   onExit,
 }: HostLobbyProps) {
+  const { t } = useLanguage();
   const [copied, setCopied] = useState(false);
   const [isMusicPlaying, setIsMusicPlaying] = useState(false);
 
@@ -68,14 +70,14 @@ export function HostLobby({
           className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 hover:bg-slate-800 transition cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>Покинуть лобби</span>
+          <span>{t('host.leaveLobby')}</span>
         </button>
 
         <div className="flex items-center gap-2">
           <span className="text-xl">{quiz.coverEmoji}</span>
           <span className="text-sm font-bold text-white max-w-xs truncate">{quiz.title}</span>
           <span className="text-xs text-slate-500 bg-slate-900 px-2 py-0.5 rounded-lg border border-slate-800">
-            {quiz.questions.length} вопросов
+            {quiz.questions.length} {t('aiTemplate.questionsSuffix')}
           </span>
         </div>
 
@@ -89,7 +91,7 @@ export function HostLobby({
             }`}
           >
             {isMusicPlaying ? <Volume2 className="w-4 h-4 animate-pulse" /> : <VolumeX className="w-4 h-4" />}
-            <span>{isMusicPlaying ? 'Музыка играет' : 'Включить музыку'}</span>
+            <span>{isMusicPlaying ? t('host.musicPlaying') : t('host.musicEnable')}</span>
           </button>
         </div>
       </div>
@@ -97,7 +99,7 @@ export function HostLobby({
       {/* Center Huge Room PIN Card */}
       <div className="my-auto text-center flex flex-col items-center z-10">
         <div className="inline-flex items-center gap-2 bg-slate-900/90 border border-slate-800 px-4 py-1.5 rounded-full text-xs text-slate-400 mb-3 backdrop-blur-md">
-          <span>Подключайтесь по PIN-коду</span>
+          <span>{t('host.joinWithPin')}</span>
         </div>
 
         <div
@@ -105,7 +107,7 @@ export function HostLobby({
           className="group relative cursor-pointer bg-gradient-to-b from-slate-900 to-slate-950 border-2 border-slate-700 hover:border-slate-400 rounded-3xl p-6 md:p-8 shadow-2xl transition-all duration-200"
         >
           <div className="text-xs uppercase tracking-widest text-slate-500 font-bold mb-1">
-            ПИН-КОД КОМНАТЫ
+            {t('host.roomPin')}
           </div>
           <div className="text-5xl md:text-7xl font-mono font-black tracking-widest text-white group-hover:scale-105 transition-transform">
             {roomCode.slice(0, 3)} {roomCode.slice(3)}
@@ -114,12 +116,12 @@ export function HostLobby({
             {copied ? (
               <>
                 <Check className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="text-emerald-400 font-medium">Скопировано в буфер!</span>
+                <span className="text-emerald-400 font-medium">{t('host.copiedToClipboard')}</span>
               </>
             ) : (
               <>
                 <Copy className="w-3.5 h-3.5" />
-                <span>Нажмите, чтобы скопировать</span>
+                <span>{t('host.clickToCopy')}</span>
               </>
             )}
           </div>
@@ -127,7 +129,7 @@ export function HostLobby({
 
         {/* Quick helper tip for multi-tab test */}
         <div className="mt-3 text-xs text-slate-500 max-w-md">
-          💡 Чтобы проверить мультиплеер: откройте еще одну вкладку браузера или подключитесь со смартфона по этому PIN!
+          {t('host.multiplayerTip')}
         </div>
       </div>
 
@@ -137,7 +139,7 @@ export function HostLobby({
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2 text-sm font-bold text-white">
               <Users className="w-4 h-4 text-slate-400" />
-              <span>Игроки в комнате:</span>
+              <span>{t('host.playersInRoom')}:</span>
               <span className="w-6 h-6 rounded-full bg-slate-800 border border-slate-700 text-xs flex items-center justify-center font-mono text-slate-200">
                 {playerList.length}
               </span>
@@ -146,10 +148,10 @@ export function HostLobby({
             <button
               onClick={handleAddSampleBots}
               className="flex items-center gap-1.5 text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 px-3 py-1.5 rounded-xl transition cursor-pointer"
-              title="Добавить виртуальных соперников с реалистичными реакциями"
+              title={t('host.addBots')}
             >
-              <Bot className="w-3.5 h-3.5 text-amber-400" />
-              <span>+ Добавить ботов (4)</span>
+              <Bot className="w-3.5 h-3.5 text-[var(--accent-400)]" />
+              <span>+ {t('host.addBots')} (4)</span>
             </button>
           </div>
 
@@ -164,10 +166,10 @@ export function HostLobby({
               sounds.playClick();
               onStartGame();
             }}
-            className="w-full md:w-auto px-8 py-3.5 rounded-2xl bg-slate-100 hover:bg-white text-slate-950 font-bold text-base transition flex items-center justify-center gap-2 shadow-xl disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+            className="w-full md:w-auto px-8 py-3.5 rounded-2xl bg-[var(--accent-500)] hover:brightness-110 active:brightness-90 text-slate-950 font-bold text-base transition flex items-center justify-center gap-2 shadow-xl shadow-[var(--accent-glow)] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
           >
             <Play className="w-5 h-5 fill-slate-950" />
-            <span>Начать игру ({playerList.length})</span>
+            <span>{t('host.startGame')} ({playerList.length})</span>
           </motion.button>
         </div>
 
@@ -175,7 +177,7 @@ export function HostLobby({
         <div className="min-h-[90px] max-h-48 overflow-y-auto">
           {playerList.length === 0 ? (
             <div className="h-24 flex flex-col items-center justify-center text-xs text-slate-500 border border-dashed border-slate-800 rounded-2xl">
-              <span>Ожидание первого игрока... Откройте новую вкладку или добавьте ботов выше</span>
+              <span>{t('host.waitingFirstPlayer')}</span>
             </div>
           ) : (
             <div className="flex flex-wrap gap-2.5">
@@ -200,7 +202,7 @@ export function HostLobby({
                     <button
                       onClick={() => onKickPlayer(p.id)}
                       className="opacity-0 group-hover:opacity-100 p-1 hover:text-red-400 text-slate-500 rounded transition cursor-pointer"
-                      title="Удалить из комнаты"
+                      title={t('host.kickPlayer')}
                     >
                       <Trash2 className="w-3 h-3" />
                     </button>

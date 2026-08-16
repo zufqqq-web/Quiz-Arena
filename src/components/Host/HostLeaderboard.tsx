@@ -5,6 +5,7 @@ import { Trophy, Flame, ArrowRight, ArrowUpRight, ArrowDownRight, Minus } from '
 import { sounds } from '../../utils/sound';
 import { AnimatedCounter } from '../Common/AnimatedCounter';
 import { staggerContainer, staggerItem, buttonHoverTap } from '../../utils/motionVariants';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 interface HostLeaderboardProps {
   players: Record<string, Player>;
@@ -21,6 +22,7 @@ export function HostLeaderboard({
   onNextQuestion,
   onShowPodium,
 }: HostLeaderboardProps) {
+  const { t } = useLanguage();
   const isLastQuestion = currentQuestionIndex >= totalQuestions - 1;
 
   // Sort players by current score
@@ -36,7 +38,7 @@ export function HostLeaderboard({
   const getRankDelta = (playerId: string, currentRank: number) => {
     const prevRank = previousSorted.findIndex((p) => p.id === playerId);
     if (prevRank === -1) return 0;
-    return prevRank - currentRank; // positive means climbed up (e.g. was 4th, now 2nd: 3 - 1 = +2)
+    return prevRank - currentRank;
   };
 
   useEffect(() => {
@@ -49,11 +51,11 @@ export function HostLeaderboard({
       <div className="flex items-center justify-between z-10">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 px-3.5 py-1.5 rounded-xl text-xs font-bold">
-            <Trophy className="w-4 h-4 text-amber-400" />
-            <span>Таблица лидеров</span>
+            <Trophy className="w-4 h-4 text-[var(--accent-400)]" />
+            <span>{t('host.leaderboard')}</span>
           </div>
           <span className="text-xs text-slate-500 font-mono">
-            Раунд {currentQuestionIndex + 1} / {totalQuestions}
+            {t('host.roundResults', { current: currentQuestionIndex + 1, total: totalQuestions })}
           </span>
         </div>
 
@@ -72,7 +74,7 @@ export function HostLeaderboard({
           }}
           className="flex items-center gap-2 text-xs font-bold bg-slate-100 hover:bg-white text-slate-950 px-6 py-2.5 rounded-xl transition shadow-xl cursor-pointer"
         >
-          <span>{isLastQuestion ? 'Финальный подиум 🏆' : 'Следующий вопрос'}</span>
+          <span>{isLastQuestion ? t('host.finalPodium') : t('host.nextQuestion')}</span>
           <ArrowRight className="w-4 h-4" />
         </motion.button>
       </div>
@@ -105,7 +107,7 @@ export function HostLeaderboard({
               }}
               className={`rounded-2xl border p-4 flex items-center justify-between transition-colors ${
                 isTop1
-                  ? 'bg-slate-900 border-amber-500/80 ring-2 ring-amber-500/30 scale-[1.02] shadow-xl'
+                  ? 'bg-slate-900 border-[var(--accent-500)]/80 ring-2 ring-[var(--accent-500)]/30 scale-[1.02] shadow-xl'
                   : isTop2
                   ? 'bg-slate-900 border-slate-700 shadow-md'
                   : isTop3
@@ -118,7 +120,7 @@ export function HostLeaderboard({
                 <div
                   className={`w-8 h-8 rounded-xl font-mono font-black text-sm flex items-center justify-center ${
                     isTop1
-                      ? 'bg-amber-400 text-slate-950 shadow-md'
+                      ? 'bg-[var(--accent-500)] text-slate-950 shadow-md font-bold'
                       : isTop2
                       ? 'bg-slate-300 text-slate-950'
                       : isTop3
@@ -144,11 +146,11 @@ export function HostLeaderboard({
                   <div className="flex items-center gap-2 mt-0.5">
                     {gainedPoints > 0 ? (
                       <span className="text-[11px] text-emerald-400 font-medium font-mono">
-                        +{gainedPoints} за этот вопрос
+                        +{gainedPoints} {t('player.pts')}
                       </span>
                     ) : (
                       <span className="text-[11px] text-slate-500 font-medium">
-                        +0 за этот вопрос
+                        +0 {t('player.pts')}
                       </span>
                     )}
 
@@ -178,7 +180,7 @@ export function HostLeaderboard({
                   <AnimatedCounter value={player.score} duration={700} />
                 </div>
                 <div className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">
-                  баллов
+                  {t('player.pts')}
                 </div>
               </div>
             </motion.div>
@@ -187,7 +189,7 @@ export function HostLeaderboard({
 
         {sortedPlayers.length > 5 && (
           <div className="text-center text-xs text-slate-500 pt-2 font-medium">
-            ...и еще {sortedPlayers.length - 5} игроков в зачете
+            ...+{sortedPlayers.length - 5}
           </div>
         )}
       </motion.div>

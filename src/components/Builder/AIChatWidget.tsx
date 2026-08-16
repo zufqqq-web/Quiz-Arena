@@ -1,8 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Bot, Sparkles, X, Send, Check, RefreshCw, MessageSquare, HelpCircle, AlertCircle, ChevronRight } from 'lucide-react';
+import { Bot, Sparkles, X, Send, Check, RefreshCw, MessageSquare, HelpCircle, AlertCircle, ChevronRight, Settings } from 'lucide-react';
 import { Question } from '../../types';
 import { sounds } from '../../utils/sound';
+import { generateQuizWithAI } from '../../services/aiService';
+import { AISettingsModal } from '../Common/AISettingsModal';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 interface AIChatWidgetProps {
   quizTitle?: string;
@@ -17,6 +20,8 @@ interface ChatMessage {
   isQuestionCard?: boolean;
   questions?: Question[];
   actionStatus?: 'pending' | 'applied' | 'declined';
+  isFallback?: boolean;
+  errorReason?: string;
 }
 
 // Demo questions formatted according to the user request
@@ -66,29 +71,31 @@ const DEMO_AI_QUESTIONS: Question[] = [
 ];
 
 export function AIChatWidget({ quizTitle, onApplyQuestions }: AIChatWidgetProps) {
+  const { t, language } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Default preset demo conversation
-  const [messages, setMessages] = useState<ChatMessage[]>([
+  // Default preset conversation
+  const [messages, setMessages] = useState<ChatMessage[]>(() => [
     {
       id: 'msg-1',
       sender: 'ai',
-      text: 'Привет! 👋 Я ИИ-ассистент QuizArena. Чем помочь в создании квиза?',
+      text: t('aiChat.welcomeMsg'),
       timestamp: '12:00',
     },
     {
       id: 'msg-2',
       sender: 'user',
-      text: 'Помоги создать 3 квиза основываясь на вопросах и тайтле квиза',
+      text: t('aiChat.sampleUserMsg'),
       timestamp: '12:01',
     },
     {
       id: 'msg-3',
       sender: 'ai',
-      text: `Конечно! Вот вам 3 сгенерированных вопроса по теме "${quizTitle || 'Python'}":`,
+      text: t('aiChat.sampleAiMsg', { topic: quizTitle || 'Python' }),
       timestamp: '12:01',
       isQuestionCard: true,
       questions: DEMO_AI_QUESTIONS,
@@ -126,7 +133,7 @@ export function AIChatWidget({ quizTitle, onApplyQuestions }: AIChatWidgetProps)
       const confirmMsg: ChatMessage = {
         id: 'msg-' + Date.now(),
         sender: 'ai',
-        text: '🎉 Отлично! 3 вопроса успешно добавлены в ваш квиз. Вы можете отредактировать их в любое время.',
+        text: t('aiChat.appliedFollowup'),
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
       setMessages((prev) => [...prev, confirmMsg]);
@@ -146,14 +153,14 @@ export function AIChatWidget({ quizTitle, onApplyQuestions }: AIChatWidgetProps)
       const declineMsg: ChatMessage = {
         id: 'msg-' + Date.now(),
         sender: 'ai',
-        text: 'Понял, эти вопросы отменены. Напишите мне, если нужны другие варианты!',
+        text: t('aiChat.declinedFollowup'),
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
       setMessages((prev) => [...prev, declineMsg]);
     }, 300);
   };
 
-  const handleSendMessage = (e?: React.FormEvent) => {
+  const handleSendMessage = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!inputValue.trim()) return;
 
@@ -172,56 +179,79 @@ export function AIChatWidget({ quizTitle, onApplyQuestions }: AIChatWidgetProps)
     setInputValue('');
     setIsTyping(true);
 
-    // Simulate smart AI response
-    setTimeout(() => {
-      setIsTyping(false);
-      sounds.playPop();
+    const isQuestionRequest =
+      userText.toLowerCase().includes('вопрос') ||
+      userText.toLowerCase().includes('question') ||
+      userText.toLowerCase().includes('savol') ||
+      userText.toLowerCase().includes('квиз') ||
+      userText.toLowerCase().includes('quiz') ||
+      userText.toLowerCase().includes('еще') ||
+      userText.toLowerCase().includes('more') ||
+      userText.toLowerCase().includes('яна') ||
+      userText.toLowerCase().includes('создай') ||
+      userText.toLowerCase().includes('create') ||
+      userText.toLowerCase().includes('yarat') ||
+      userText.toLowerCase().includes('сгенерируй') ||
+      userText.toLowerCase().includes('generate');
 
-      let replyText = 'Я проанализировал ваш запрос! Я могу сгенерировать новые вопросы, перефразировать варианты или проверить правильные ответы.';
-      let cardQuestions: Question[] | undefined = undefined;
+    try {
+      if (isQuestionRequest) {
+        // Run generation with real AI / backend
+        const topic = quizTitle || userText;
+        const result = await generateQuizWithAI({
+          topic,
+          questionCount: 3,
+          language: language === 'uz' ? 'uz' : language === 'en' ? 'en' : 'ru',
+        });
 
-      if (userText.toLowerCase().includes('еще') || userText.toLowerCase().includes('ещё') || userText.toLowerCase().includes('вопрос')) {
-        replyText = `Вот еще 3 отличных вопроса по теме "${quizTitle || 'Программирование'}":`;
-        cardQuestions = DEMO_AI_QUESTIONS.map((q, idx) => ({
-          ...q,
-          id: `ai-gen-extra-${Date.now()}-${idx}`,
-          title: idx === 0 
-            ? 'Что вернет функция type([]) в Python?' 
-            : idx === 1 
-            ? 'Какой символ используется для комментариев в Python?' 
-            : 'Какая функция используется для получения ввода пользователя?',
-          options: idx === 0
-            ? [
-                { id: `o-1-${idx}`, text: '<class "list">', isCorrect: true },
-                { id: `o-2-${idx}`, text: '<class "array">', isCorrect: false },
-                { id: `o-3-${idx}`, text: '<class "tuple">', isCorrect: false },
-              ]
-            : idx === 1
-            ? [
-                { id: `o-4-${idx}`, text: '//', isCorrect: false },
-                { id: `o-5-${idx}`, text: '#', isCorrect: true },
-                { id: `o-6-${idx}`, text: '/*', isCorrect: false },
-              ]
-            : [
-                { id: `o-7-${idx}`, text: 'input()', isCorrect: true },
-                { id: `o-8-${idx}`, text: 'read()', isCorrect: false },
-                { id: `o-9-${idx}`, text: 'scan()', isCorrect: false },
-              ],
-        }));
+        setIsTyping(false);
+        sounds.playPop();
+
+        let aiText = t('aiChat.sampleAiMsg', { topic });
+        if (result.usedFallback) {
+          aiText = t('aiChat.fallbackNotice', {
+            topic,
+            reason: result.errorReason || 'Offline demo',
+          });
+        }
+
+        const aiMsg: ChatMessage = {
+          id: 'msg-' + (Date.now() + 1),
+          sender: 'ai',
+          text: aiText,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          isQuestionCard: true,
+          questions: result.questions,
+          actionStatus: 'pending',
+          isFallback: result.usedFallback,
+          errorReason: result.errorReason,
+        };
+        setMessages((prev) => [...prev, aiMsg]);
+      } else {
+        // Chat assistance response
+        setTimeout(() => {
+          setIsTyping(false);
+          sounds.playPop();
+
+          const aiMsg: ChatMessage = {
+            id: 'msg-' + (Date.now() + 1),
+            sender: 'ai',
+            text: t('aiChat.genericHelp'),
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          };
+          setMessages((prev) => [...prev, aiMsg]);
+        }, 600);
       }
-
+    } catch {
+      setIsTyping(false);
       const aiMsg: ChatMessage = {
         id: 'msg-' + (Date.now() + 1),
         sender: 'ai',
-        text: replyText,
+        text: t('aiChat.errorMsg'),
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        isQuestionCard: !!cardQuestions,
-        questions: cardQuestions,
-        actionStatus: cardQuestions ? 'pending' : undefined,
       };
-
       setMessages((prev) => [...prev, aiMsg]);
-    }, 900);
+    }
   };
 
   const handleResetChat = () => {
@@ -230,19 +260,19 @@ export function AIChatWidget({ quizTitle, onApplyQuestions }: AIChatWidgetProps)
       {
         id: 'msg-1',
         sender: 'ai',
-        text: 'Привет! 👋 Я ИИ-ассистент QuizArena. Чем помочь в создании квиза?',
+        text: t('aiChat.welcomeMsg'),
         timestamp: '12:00',
       },
       {
         id: 'msg-2',
         sender: 'user',
-        text: 'Помоги создать 3 квиза основываясь на вопросах и тайтле квиза',
+        text: t('aiChat.sampleUserMsg'),
         timestamp: '12:01',
       },
       {
         id: 'msg-3',
         sender: 'ai',
-        text: `Конечно! Вот вам 3 сгенерированных вопроса по теме "${quizTitle || 'Python'}":`,
+        text: t('aiChat.sampleAiMsg', { topic: quizTitle || 'Python' }),
         timestamp: '12:01',
         isQuestionCard: true,
         questions: DEMO_AI_QUESTIONS,
@@ -255,28 +285,26 @@ export function AIChatWidget({ quizTitle, onApplyQuestions }: AIChatWidgetProps)
     <>
       {/* 1. Floating Robot Button (Bottom Right) */}
       <div className="fixed bottom-5 right-5 sm:bottom-6 sm:right-6 z-40 flex items-center gap-2 select-none">
-        {/* Helper tooltip if chat is closed */}
         {!isOpen && (
           <motion.div
             initial={{ opacity: 0, x: 10, scale: 0.95 }}
             animate={{ opacity: 1, x: 0, scale: 1 }}
             className="hidden sm:flex items-center gap-2 bg-slate-900/90 border border-indigo-500/30 backdrop-blur-md px-3 py-1.5 rounded-2xl shadow-xl text-xs font-semibold text-indigo-200"
           >
-            <Sparkles className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-            <span>ИИ Бот Ассистент</span>
+            <Sparkles className="w-3.5 h-3.5 text-[var(--accent-400)] animate-pulse" />
+            <span>{t('aiChat.floatingTooltip')}</span>
           </motion.div>
         )}
 
         <button
           onClick={handleToggleChat}
-          aria-label={isOpen ? 'Закрыть чат с ИИ ботом' : 'Открыть чат с ИИ ботом'}
+          aria-label={isOpen ? t('common.close') : t('aiChat.botTitle')}
           className={`relative p-3.5 sm:p-4 rounded-full shadow-2xl transition-all duration-300 transform hover:scale-105 active:scale-95 cursor-pointer flex items-center justify-center border ${
             isOpen
               ? 'bg-slate-800 text-slate-300 border-slate-700 shadow-slate-950/50'
-              : 'bg-gradient-to-tr from-violet-600 via-indigo-600 to-amber-500 text-white border-indigo-400/40 shadow-indigo-500/30 hover:shadow-indigo-500/50 ring-4 ring-indigo-500/10'
+              : 'bg-gradient-to-tr from-violet-600 via-indigo-600 to-[var(--accent-500)] text-white border-indigo-400/40 shadow-indigo-500/30 hover:shadow-indigo-500/50 ring-4 ring-indigo-500/10'
           }`}
         >
-          {/* Online green indicator */}
           <span className="absolute top-0 right-0 flex h-3 w-3 -mt-0.5 -mr-0.5">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
             <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500 ring-2 ring-slate-950"></span>
@@ -291,7 +319,7 @@ export function AIChatWidget({ quizTitle, onApplyQuestions }: AIChatWidgetProps)
         </button>
       </div>
 
-      {/* 2. Chat Popup Window with Smooth Animation */}
+      {/* 2. Chat Popup Window */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -314,22 +342,32 @@ export function AIChatWidget({ quizTitle, onApplyQuestions }: AIChatWidgetProps)
                 </div>
                 <div>
                   <div className="flex items-center gap-1.5">
-                    <h3 className="text-sm font-bold text-white tracking-tight">ИИ-Помощник QuizArena</h3>
+                    <h3 className="text-sm font-bold text-white tracking-tight">{t('aiChat.botTitle')}</h3>
                     <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
                       AI 3.6
                     </span>
                   </div>
                   <p className="text-[11px] text-slate-400 flex items-center gap-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    <span>Онлайн • Генерация вопросов</span>
+                    <span>{t('aiChat.botStatus')}</span>
                   </p>
                 </div>
               </div>
 
               <div className="flex items-center gap-1">
                 <button
+                  onClick={() => {
+                    sounds.playClick();
+                    setIsSettingsOpen(true);
+                  }}
+                  title={t('common.aiSettings')}
+                  className="p-1.5 rounded-xl text-slate-400 hover:text-indigo-300 hover:bg-slate-800 transition cursor-pointer"
+                >
+                  <Settings className="w-4 h-4" />
+                </button>
+                <button
                   onClick={handleResetChat}
-                  title="Перезапустить демонстрационный диалог"
+                  title={t('common.reset')}
                   className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
                 >
                   <RefreshCw className="w-4 h-4" />
@@ -369,22 +407,22 @@ export function AIChatWidget({ quizTitle, onApplyQuestions }: AIChatWidgetProps)
                         <p>{msg.text}</p>
                       </div>
 
-                      {/* Question Card Render (Markdown style card for generated questions) */}
+                      {/* Question Card Render */}
                       {msg.isQuestionCard && msg.questions && (
                         <div className="bg-slate-950/90 border border-slate-800 rounded-2xl p-3 space-y-3 shadow-inner">
-                          <div className="flex items-center justify-between text-[11px] font-bold text-amber-300 pb-1.5 border-b border-slate-800">
+                          <div className="flex items-center justify-between text-[11px] font-bold text-[var(--accent-300)] pb-1.5 border-b border-slate-800">
                             <span className="flex items-center gap-1">
-                              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                              <span>Сгенерировано 3 вопроса</span>
+                              <Sparkles className="w-3.5 h-3.5 text-[var(--accent-400)]" />
+                              <span>{t('aiChat.generatedHeader')}</span>
                             </span>
-                            <span className="text-[10px] text-slate-500 font-mono">Python Pack</span>
+                            <span className="text-[10px] text-slate-500 font-mono">QuizPack</span>
                           </div>
 
                           <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
                             {msg.questions.map((q, idx) => (
                               <div key={q.id} className="bg-slate-900/90 border border-slate-800 p-2.5 rounded-xl space-y-1.5">
                                 <div className="font-semibold text-slate-200 flex items-start gap-1.5 text-[11px]">
-                                  <span className="text-amber-400 font-mono">{idx + 1}.</span>
+                                  <span className="text-[var(--accent-400)] font-mono">{idx + 1}.</span>
                                   <span>{q.title}</span>
                                 </div>
                                 <div className="grid grid-cols-2 gap-1.5 pt-1">
@@ -406,7 +444,7 @@ export function AIChatWidget({ quizTitle, onApplyQuestions }: AIChatWidgetProps)
                             ))}
                           </div>
 
-                          {/* Action Buttons: Allow / Decline */}
+                          {/* Action Buttons */}
                           <div className="pt-2 border-t border-slate-800/80 flex items-center justify-end gap-2">
                             {msg.actionStatus === 'pending' && (
                               <>
@@ -415,14 +453,14 @@ export function AIChatWidget({ quizTitle, onApplyQuestions }: AIChatWidgetProps)
                                   className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-rose-950/60 hover:text-rose-300 text-slate-400 border border-slate-800 hover:border-rose-800/50 transition cursor-pointer flex items-center gap-1.5 font-semibold text-[11px]"
                                 >
                                   <X className="w-3.5 h-3.5" />
-                                  <span>Отклонить</span>
+                                  <span>{t('aiChat.decline')}</span>
                                 </button>
                                 <button
                                   onClick={() => handleApply(msg.id, msg.questions!)}
                                   className="px-3.5 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600 text-slate-950 transition cursor-pointer flex items-center gap-1.5 font-bold text-[11px] shadow-lg shadow-emerald-500/20"
                                 >
                                   <Check className="w-3.5 h-3.5 stroke-[3]" />
-                                  <span>Вставить в квиз</span>
+                                  <span>{t('aiChat.apply')}</span>
                                 </button>
                               </>
                             )}
@@ -430,14 +468,14 @@ export function AIChatWidget({ quizTitle, onApplyQuestions }: AIChatWidgetProps)
                             {msg.actionStatus === 'applied' && (
                               <div className="w-full py-1.5 px-3 rounded-xl bg-emerald-950/70 border border-emerald-800/60 text-emerald-300 flex items-center justify-center gap-1.5 font-bold text-[11px]">
                                 <Check className="w-4 h-4 text-emerald-400" />
-                                <span>Вопросы вставлены в квиз ✓</span>
+                                <span>{t('aiChat.appliedSuccess')}</span>
                               </div>
                             )}
 
                             {msg.actionStatus === 'declined' && (
                               <div className="w-full py-1.5 px-3 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 flex items-center justify-center gap-1.5 font-semibold text-[11px]">
                                 <X className="w-3.5 h-3.5 text-slate-500" />
-                                <span>Генерация отклонена</span>
+                                <span>{t('aiChat.declinedStatus')}</span>
                               </div>
                             )}
                           </div>
@@ -477,8 +515,8 @@ export function AIChatWidget({ quizTitle, onApplyQuestions }: AIChatWidgetProps)
                 }}
                 className="whitespace-nowrap px-2.5 py-1 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/50 text-[10px] transition cursor-pointer flex items-center gap-1"
               >
-                <Sparkles className="w-3 h-3 text-amber-400" />
-                <span>Еще 3 вопроса</span>
+                <Sparkles className="w-3 h-3 text-[var(--accent-400)]" />
+                <span>{t('aiChat.chipMoreQuestions')}</span>
               </button>
               <button
                 onClick={() => {
@@ -486,7 +524,7 @@ export function AIChatWidget({ quizTitle, onApplyQuestions }: AIChatWidgetProps)
                 }}
                 className="whitespace-nowrap px-2.5 py-1 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/50 text-[10px] transition cursor-pointer"
               >
-                <span>🎯 Сложные вопросы</span>
+                <span>{t('aiChat.chipHarder')}</span>
               </button>
               <button
                 onClick={() => {
@@ -494,7 +532,7 @@ export function AIChatWidget({ quizTitle, onApplyQuestions }: AIChatWidgetProps)
                 }}
                 className="whitespace-nowrap px-2.5 py-1 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/50 text-[10px] transition cursor-pointer"
               >
-                <span>⚡ True / False</span>
+                <span>{t('aiChat.chipTrueFalse')}</span>
               </button>
             </div>
 
@@ -507,7 +545,7 @@ export function AIChatWidget({ quizTitle, onApplyQuestions }: AIChatWidgetProps)
                 type="text"
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
-                placeholder="Задайте вопрос ИИ боту..."
+                placeholder={t('aiChat.inputPlaceholder')}
                 className="flex-1 bg-slate-950 border border-slate-800 rounded-2xl px-3.5 py-2.5 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500 transition"
               />
               <button
@@ -525,6 +563,11 @@ export function AIChatWidget({ quizTitle, onApplyQuestions }: AIChatWidgetProps)
           </motion.div>
         )}
       </AnimatePresence>
+
+      <AISettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+      />
     </>
   );
 }
