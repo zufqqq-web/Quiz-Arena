@@ -84,9 +84,27 @@ export function PlayerAnswerResult({
 
         {/* Streak bonus card */}
         {player.streak >= 2 && isCorrect && (
-          <div className="bg-orange-950/60 border border-orange-800/80 text-orange-300 px-4 py-2.5 rounded-2xl flex items-center gap-2 text-xs font-bold shadow-lg animate-bounce">
+          <div className="bg-orange-950/60 border border-orange-800/80 text-orange-300 px-4 py-2.5 rounded-2xl flex items-center justify-center gap-2 text-xs font-bold shadow-lg animate-bounce">
             <Flame className="w-4 h-4 fill-orange-400 text-orange-400" />
-            <span>Серия побед: x{player.streak} подряд! (+{answer?.streakBonus || 100} бонус)</span>
+            <span>
+              Серия: x{player.streak} подряд! {answer?.streakMultiplier && answer.streakMultiplier > 1 && `(Множитель ×${answer.streakMultiplier})`}
+            </span>
+          </div>
+        )}
+
+        {/* Shield protection notification */}
+        {answer?.shieldProtected && (
+          <div className="bg-cyan-950/60 border border-cyan-800/80 text-cyan-300 px-4 py-2.5 rounded-2xl flex items-center justify-center gap-2 text-xs font-bold shadow-lg">
+            <span>🛡️</span>
+            <span>Щит спас вашу серию побед от сгорания!</span>
+          </div>
+        )}
+
+        {/* 2x points notification */}
+        {answer?.powerUpUsed === 'double_points' && isCorrect && (
+          <div className="bg-purple-950/60 border border-purple-800/80 text-purple-300 px-4 py-2 rounded-2xl flex items-center justify-center gap-2 text-xs font-bold">
+            <Zap className="w-4 h-4 text-purple-400" />
+            <span>Бонус 2x удвоения очков применен!</span>
           </div>
         )}
 

@@ -32,27 +32,47 @@ export function generateBotPlayers(count: number = 4): Player[] {
   }));
 }
 
-// Calculate score based on Kahoot formula:
-// Points = round((1 - ((timeSpent / timeLimit) / 2)) * 1000 * multiplier) + streakBonus
+// Calculate score based on Kahoot formula + Dynamic Streak Multipliers
+// Base Points = round((1 - ((timeSpent / timeLimit) / 2)) * 1000 * multiplier)
+// Streak Multiplier:
+// 3+ in a row -> x1.1
+// 5+ in a row -> x1.25
+// 8+ in a row -> x1.5
 export function calculateScore(
   timeSpentMs: number,
   timeLimitSec: number,
   multiplier: number,
-  currentStreak: number
-): { points: number; streakBonus: number } {
-  if (multiplier === 0) return { points: 0, streakBonus: 0 };
+  currentStreak: number,
+  powerUpActive?: 'double_points' | 'shield' | 'fifty_fifty' | 'freeze' | null
+): { points: number; streakBonus: number; streakMultiplier: number } {
+  if (multiplier === 0) return { points: 0, streakBonus: 0, streakMultiplier: 1.0 };
 
   const timeLimitMs = timeLimitSec * 1000;
-  const clampedTime = Math.min(Math.max(timeSpentMs, 500), timeLimitMs);
-  const timeFactor = 1 - (clampedTime / timeLimitMs) / 2; // Between 0.5 and 1.0
-  const basePoints = Math.round(timeFactor * 1000 * multiplier);
+  const clampedTime = Math.min(Math.max(timeSpentMs, 400), timeLimitMs);
+  const timeFactor = Math.max(0.5, 1 - (clampedTime / timeLimitMs) / 2); // Between 0.5 and 1.0
+  let basePoints = Math.round(timeFactor * 1000 * multiplier);
 
-  // Streak bonus: +50 for streak >= 2, +100 for >= 3, +150 for >= 4, +200 max
+  // Dynamic streak multiplier
+  let streakMultiplier = 1.0;
+  if (currentStreak >= 8) streakMultiplier = 1.5;
+  else if (currentStreak >= 5) streakMultiplier = 1.25;
+  else if (currentStreak >= 3) streakMultiplier = 1.1;
+
+  // Streak additive bonus
   const streakBonus = currentStreak >= 4 ? 200 : currentStreak >= 3 ? 150 : currentStreak >= 2 ? 100 : currentStreak >= 1 ? 50 : 0;
 
+  // Apply streak multiplier to base points
+  let totalPoints = Math.round((basePoints + streakBonus) * streakMultiplier);
+
+  // Double points powerup
+  if (powerUpActive === 'double_points') {
+    totalPoints = totalPoints * 2;
+  }
+
   return {
-    points: basePoints + streakBonus,
+    points: totalPoints,
     streakBonus,
+    streakMultiplier,
   };
 }
 
@@ -67,16 +87,17 @@ export function simulateBotAnswer(
   
   // Calculate simulated speed delay
   let baseDelayRatio = 0.35;
-  if (bot.botSpeed === 'fast') baseDelayRatio = 0.18 + Math.random() * 0.25;
-  else if (bot.botSpeed === 'slow') baseDelayRatio = 0.5 + Math.random() * 0.35;
-  else baseDelayRatio = 0.3 + Math.random() * 0.35;
+  if (bot.botSpeed === 'fast') baseDelayRatio = 0.15 + Math.random() * 0.22;
+  else if (bot.botSpeed === 'slow') baseDelayRatio = 0.45 + Math.random() * 0.35;
+  else baseDelayRatio = 0.28 + Math.random() * 0.32;
 
-  const timeSpentMs = Math.min(Math.round(timeLimitMs * baseDelayRatio), timeLimitMs - 300);
+  const timeSpentMs = Math.min(Math.round(timeLimitMs * baseDelayRatio), timeLimitMs - 200);
   const accuracy = bot.botAccuracy ?? 0.8;
   const willBeCorrect = question.type === 'poll' ? true : Math.random() < accuracy;
 
   let selectedOptionIds: string[] = [];
   let textAnswer: string | undefined = undefined;
+  let numberAnswer: number | undefined = undefined;
 
   if (question.type === 'single' || question.type === 'boolean') {
     const correctOption = question.options.find((o) => o.isCorrect);
@@ -100,7 +121,6 @@ export function simulateBotAnswer(
     if (willBeCorrect) {
       selectedOptionIds = correctOptions.map((o) => o.id);
     } else {
-      // Pick random subset
       selectedOptionIds = question.options
         .filter(() => Math.random() > 0.5)
         .map((o) => o.id);
@@ -113,30 +133,39 @@ export function simulateBotAnswer(
     if (willBeCorrect) {
       selectedOptionIds = sorted.map((o) => o.id);
     } else {
-      // slightly jumbled
       selectedOptionIds = [...question.options].sort(() => 0.5 - Math.random()).map((o) => o.id);
     }
   } else if (question.type === 'text') {
     if (willBeCorrect && question.correctTextAnswer) {
       textAnswer = question.correctTextAnswer;
     } else {
-      textAnswer = 'Неверный вариант';
+      textAnswer = 'Неверно';
+    }
+  } else if (question.type === 'number') {
+    const target = question.correctNumberAnswer ?? 100;
+    const tolerance = question.numberTolerance ?? 0;
+    if (willBeCorrect) {
+      numberAnswer = target + (tolerance > 0 ? (Math.random() > 0.5 ? Math.floor(Math.random() * tolerance) : -Math.floor(Math.random() * tolerance)) : 0);
+    } else {
+      numberAnswer = target + (tolerance + 5 + Math.floor(Math.random() * 20));
     }
   }
 
-  const { points, streakBonus } = willBeCorrect
+  const { points, streakBonus, streakMultiplier } = willBeCorrect
     ? calculateScore(timeSpentMs, question.timeLimit, question.pointsMultiplier, bot.streak)
-    : { points: 0, streakBonus: 0 };
+    : { points: 0, streakBonus: 0, streakMultiplier: 1.0 };
 
   const answer: PlayerAnswer = {
     questionId: question.id,
     questionIndex,
     selectedOptionIds,
     textAnswer,
+    numberAnswer,
     isCorrect: willBeCorrect,
     pointsEarned: points,
     timeSpentMs,
     streakBonus,
+    streakMultiplier,
     answeredAt: startTime + timeSpentMs,
   };
 

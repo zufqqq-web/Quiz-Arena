@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Player, RoomState, PlayerAnswer, GameReaction } from '../../types';
+import { Player, RoomState, PlayerAnswer, GameReaction, PowerUpType } from '../../types';
 import { syncBus, SyncMessage } from '../../utils/syncBus';
 import { storage } from '../../utils/storage';
 import { calculateScore } from '../../utils/botSimulator';
@@ -89,6 +89,14 @@ export function PlayerView({ initialPin = '', onExit }: PlayerViewProps) {
       streak: 0,
       highestStreak: 0,
       answers: {},
+      powerUps: {
+        fiftyFifty: 1,
+        doublePoints: 1,
+        shield: 1,
+        freeze: 1,
+      },
+      activePowerUp: null,
+      removedOptionIds: [],
       connected: true,
     };
 
@@ -109,8 +117,70 @@ export function PlayerView({ initialPin = '', onExit }: PlayerViewProps) {
     }
   };
 
+  // Use Power-up
+  const handleUsePowerUp = (type: PowerUpType) => {
+    if (!player || !roomState) return;
+    const inv = player.powerUps || { fiftyFifty: 0, doublePoints: 0, shield: 0, freeze: 0 };
+    const currentQ = roomState.quiz.questions[roomState.currentQuestionIndex];
+    if (!currentQ) return;
+
+    if (type === 'fifty_fifty') {
+      if (inv.fiftyFifty <= 0) return;
+      sounds.playPowerup();
+      // Remove 2 incorrect options
+      const incorrectIds = currentQ.options.filter((o) => !o.isCorrect).map((o) => o.id);
+      const toRemove = incorrectIds.slice(0, 2);
+      setPlayer((prev) =>
+        prev
+          ? {
+              ...prev,
+              removedOptionIds: toRemove,
+              powerUps: { ...inv, fiftyFifty: inv.fiftyFifty - 1 },
+              activePowerUp: 'fifty_fifty',
+            }
+          : prev
+      );
+    } else if (type === 'double_points') {
+      if (inv.doublePoints <= 0) return;
+      sounds.playPowerup();
+      setPlayer((prev) =>
+        prev
+          ? {
+              ...prev,
+              activePowerUp: 'double_points',
+              powerUps: { ...inv, doublePoints: inv.doublePoints - 1 },
+            }
+          : prev
+      );
+    } else if (type === 'shield') {
+      if (inv.shield <= 0) return;
+      sounds.playShield();
+      setPlayer((prev) =>
+        prev
+          ? {
+              ...prev,
+              activePowerUp: 'shield',
+              powerUps: { ...inv, shield: inv.shield - 1 },
+            }
+          : prev
+      );
+    } else if (type === 'freeze') {
+      if (inv.freeze <= 0) return;
+      sounds.playPowerup();
+      setPlayer((prev) =>
+        prev
+          ? {
+              ...prev,
+              activePowerUp: 'freeze',
+              powerUps: { ...inv, freeze: inv.freeze - 1 },
+            }
+          : prev
+      );
+    }
+  };
+
   // Submit player answer
-  const handleSubmitAnswer = (selectedOptionIds: string[], textAnswer?: string) => {
+  const handleSubmitAnswer = (selectedOptionIds: string[], textAnswer?: string, numberAnswer?: number) => {
     if (!roomState || !player) return;
 
     const currentQ = roomState.quiz.questions[roomState.currentQuestionIndex];
@@ -141,25 +211,55 @@ export function PlayerView({ initialPin = '', onExit }: PlayerViewProps) {
       const cleanExpected = (currentQ.correctTextAnswer || '').trim().toLowerCase();
       const cleanActual = (textAnswer || '').trim().toLowerCase();
       isCorrect = !!cleanExpected && cleanExpected === cleanActual;
+    } else if (currentQ.type === 'number') {
+      const expectedNum = currentQ.correctNumberAnswer ?? 0;
+      const tolerance = currentQ.numberTolerance ?? 0;
+      const userNum = numberAnswer !== undefined ? numberAnswer : parseFloat(textAnswer || '0');
+      const diff = Math.abs(userNum - expectedNum);
+      isCorrect = diff <= tolerance;
     }
 
-    const { points, streakBonus } = isCorrect
-      ? calculateScore(timeSpentMs, currentQ.timeLimit, currentQ.pointsMultiplier, player.streak)
-      : { points: 0, streakBonus: 0 };
+    const isDoublePointsActive = player.activePowerUp === 'double_points';
+    const isShieldActive = player.activePowerUp === 'shield';
+
+    const { points, streakBonus, streakMultiplier } = isCorrect
+      ? calculateScore(
+          timeSpentMs,
+          currentQ.timeLimit,
+          currentQ.pointsMultiplier,
+          player.streak,
+          player.activePowerUp
+        )
+      : { points: 0, streakBonus: 0, streakMultiplier: 1.0 };
 
     const answerRecord: PlayerAnswer = {
       questionId: currentQ.id,
       questionIndex: roomState.currentQuestionIndex,
       selectedOptionIds,
       textAnswer,
+      numberAnswer,
       isCorrect,
       pointsEarned: points,
       timeSpentMs,
       streakBonus,
+      streakMultiplier,
+      powerUpUsed: player.activePowerUp || undefined,
+      shieldProtected: !isCorrect && isShieldActive,
       answeredAt: now,
     };
 
     setHasAnsweredCurrent(true);
+
+    // Update local player state with active power-ups cleared for next question
+    setPlayer((prev) =>
+      prev
+        ? {
+            ...prev,
+            activePowerUp: null,
+            removedOptionIds: [],
+          }
+        : prev
+    );
 
     // Send answer to Host
     syncBus.broadcast({
@@ -249,6 +349,7 @@ export function PlayerView({ initialPin = '', onExit }: PlayerViewProps) {
           hasAnswered={hasAnsweredCurrent}
           onSubmitAnswer={handleSubmitAnswer}
           onSendReaction={handleSendReaction}
+          onUsePowerUp={handleUsePowerUp}
         />
       ) : roomState.status === 'question_reveal' || roomState.status === 'leaderboard' ? (
         <PlayerAnswerResult

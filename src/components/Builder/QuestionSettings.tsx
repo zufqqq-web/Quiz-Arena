@@ -1,5 +1,5 @@
 import { Question, QuestionType } from '../../types';
-import { Clock, Award, Layers, HelpCircle, CheckCircle2, ListOrdered, Type, BarChart2 } from 'lucide-react';
+import { Clock, Award, Layers, HelpCircle, CheckCircle2, ListOrdered, Type, BarChart2, Hash } from 'lucide-react';
 
 interface QuestionSettingsProps {
   question: Question;
@@ -8,10 +8,11 @@ interface QuestionSettingsProps {
 
 const QUESTION_TYPES: Array<{ type: QuestionType; label: string; desc: string; icon: any }> = [
   { type: 'single', label: 'Один ответ', desc: '4 цветных варианта, 1 верный', icon: HelpCircle },
-  { type: 'boolean', label: 'Правда / Ложь', desc: 'Два варианта (Да / Нет)', icon: CheckCircle2 },
   { type: 'multiple', label: 'Чекбоксы', desc: 'Несколько верных ответов', icon: Layers },
-  { type: 'order', label: 'Порядок', desc: 'Расположить по хронологии', icon: ListOrdered },
+  { type: 'boolean', label: 'Правда / Ложь', desc: 'Два варианта (Да / Нет)', icon: CheckCircle2 },
   { type: 'text', label: 'Ввод текста', desc: 'Игрок сам вводит слово', icon: Type },
+  { type: 'number', label: 'Числовой ответ', desc: 'Число с погрешностью ±', icon: Hash },
+  { type: 'order', label: 'Сопоставление / Порядок', desc: 'Расположить по очереди', icon: ListOrdered },
   { type: 'poll', label: 'Опрос / Голосование', desc: 'Без правильного ответа', icon: BarChart2 },
 ];
 
@@ -42,10 +43,14 @@ export function QuestionSettings({ question, onChange }: QuestionSettingsProps) 
         { id: 'ord-3', text: 'Шаг 3', orderIndex: 2 },
         { id: 'ord-4', text: 'Шаг 4', orderIndex: 3 },
       ];
+    } else if (type === 'number') {
+      options = [];
     }
 
     const pointsMultiplier = type === 'poll' ? 0 : question.pointsMultiplier === 0 ? 1 : question.pointsMultiplier;
-    onChange({ ...question, type, options, pointsMultiplier });
+    const correctNumberAnswer = question.correctNumberAnswer ?? 42;
+    const numberTolerance = question.numberTolerance ?? 0;
+    onChange({ ...question, type, options, pointsMultiplier, correctNumberAnswer, numberTolerance });
   };
 
   return (

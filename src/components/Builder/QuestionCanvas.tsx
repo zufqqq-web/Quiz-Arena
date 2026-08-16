@@ -60,6 +60,7 @@ export function QuestionCanvas({ question, onChange }: QuestionCanvasProps) {
   const hasCorrectSelected =
     question.type === 'poll' ||
     (question.type === 'text' && !!question.correctTextAnswer?.trim()) ||
+    (question.type === 'number' && question.correctNumberAnswer !== undefined && !isNaN(question.correctNumberAnswer)) ||
     question.options.some((o) => o.isCorrect);
 
   return (
@@ -301,6 +302,48 @@ export function QuestionCanvas({ question, onChange }: QuestionCanvasProps) {
                 placeholder="Например: 1961 или Юрий Гагарин"
                 className="w-full bg-slate-950 border border-pink-500/40 rounded-xl px-4 py-3 text-base text-pink-300 placeholder:text-slate-600 focus:outline-none focus:border-pink-500"
               />
+            </div>
+          </div>
+        )}
+
+        {/* TYPE 6: Number Input */}
+        {question.type === 'number' && (
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+            <div className="text-xs text-slate-400 font-medium">
+              Игроки вводят число. Вы можете задать точное число или допустимую погрешность (±).
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block mb-1.5">
+                  Правильное число:
+                </label>
+                <input
+                  type="number"
+                  value={question.correctNumberAnswer ?? ''}
+                  onChange={(e) => onChange({ ...question, correctNumberAnswer: parseFloat(e.target.value) || 0 })}
+                  placeholder="Например: 1961"
+                  className="w-full bg-slate-950 border border-blue-500/40 rounded-xl px-4 py-3 text-base font-mono text-blue-300 placeholder:text-slate-600 focus:outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block mb-1.5">
+                  Погрешность (±):
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  value={question.numberTolerance ?? 0}
+                  onChange={(e) => onChange({ ...question, numberTolerance: Math.max(0, parseFloat(e.target.value) || 0) })}
+                  placeholder="0 для точного совпадения"
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-base font-mono text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-slate-500"
+                />
+                <div className="text-[10px] text-slate-500 mt-1">
+                  {question.numberTolerance && question.numberTolerance > 0
+                    ? `Засчитываются ответы от ${(question.correctNumberAnswer ?? 0) - question.numberTolerance} до ${(question.correctNumberAnswer ?? 0) + question.numberTolerance}`
+                    : 'Требуется строго точное число'}
+                </div>
+              </div>
             </div>
           </div>
         )}

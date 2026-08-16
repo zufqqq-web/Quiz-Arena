@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Question, Player } from '../../types';
-import { Check, ArrowUp, ArrowDown, Send, Sparkles } from 'lucide-react';
+import { Question, Player, PowerUpType } from '../../types';
+import { Check, ArrowUp, ArrowDown, Send, Sparkles, Shield, Zap, Scissors, Clock } from 'lucide-react';
 import { sounds } from '../../utils/sound';
 
 interface PlayerAnswerScreenProps {
@@ -9,8 +9,9 @@ interface PlayerAnswerScreenProps {
   totalQuestions: number;
   player: Player;
   hasAnswered: boolean;
-  onSubmitAnswer: (selectedOptionIds: string[], textAnswer?: string) => void;
+  onSubmitAnswer: (selectedOptionIds: string[], textAnswer?: string, numberAnswer?: number) => void;
   onSendReaction: (emoji: string) => void;
+  onUsePowerUp?: (type: PowerUpType) => void;
 }
 
 const SHAPE_BUTTONS = [
@@ -30,6 +31,7 @@ export function PlayerAnswerScreen({
   hasAnswered,
   onSubmitAnswer,
   onSendReaction,
+  onUsePowerUp,
 }: PlayerAnswerScreenProps) {
   // State for multiple choice
   const [selectedMulti, setSelectedMulti] = useState<string[]>([]);
@@ -37,10 +39,16 @@ export function PlayerAnswerScreen({
   const [orderOptions, setOrderOptions] = useState<typeof question.options>(() => [...question.options]);
   // State for text input
   const [textInput, setTextInput] = useState('');
+  // State for number input
+  const [numberInput, setNumberInput] = useState('');
+
+  const powerUps = player.powerUps || { fiftyFifty: 1, doublePoints: 1, shield: 1, freeze: 1 };
+  const activePowerUp = player.activePowerUp;
+  const removedOptionIds = player.removedOptionIds || [];
 
   // Handle single / poll option click
   const handleSingleClick = (optionId: string) => {
-    if (hasAnswered) return;
+    if (hasAnswered || removedOptionIds.includes(optionId)) return;
     sounds.playClick();
     onSubmitAnswer([optionId]);
   };
@@ -54,7 +62,7 @@ export function PlayerAnswerScreen({
 
   // Handle multiple choice submit
   const handleToggleMulti = (optId: string) => {
-    if (hasAnswered) return;
+    if (hasAnswered || removedOptionIds.includes(optId)) return;
     sounds.playClick();
     if (selectedMulti.includes(optId)) {
       setSelectedMulti(selectedMulti.filter((id) => id !== optId));
@@ -95,6 +103,15 @@ export function PlayerAnswerScreen({
     onSubmitAnswer([], textInput.trim());
   };
 
+  // Handle number submit
+  const handleConfirmNumber = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (hasAnswered || !numberInput.trim()) return;
+    sounds.playClick();
+    const num = parseFloat(numberInput);
+    onSubmitAnswer([], numberInput.trim(), num);
+  };
+
   return (
     <div id="player-answer-screen" className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between p-4 md:p-6 select-none relative font-sans">
       {/* Top Header info */}
@@ -103,7 +120,7 @@ export function PlayerAnswerScreen({
           <span className="text-xl">{player.avatarEmoji}</span>
           <span className="text-xs font-bold text-slate-300">{player.nickname}</span>
           {player.streak >= 2 && (
-            <span className="text-[10px] font-bold text-orange-400 bg-orange-950 px-2 py-0.5 rounded-full border border-orange-800">
+            <span className="text-[10px] font-bold text-orange-400 bg-orange-950 px-2 py-0.5 rounded-full border border-orange-800 animate-pulse">
               🔥 x{player.streak}
             </span>
           )}
@@ -113,6 +130,74 @@ export function PlayerAnswerScreen({
           Вопрос {questionIndex + 1} / {totalQuestions}
         </div>
       </div>
+
+      {/* Power-ups Action Bar (When answering) */}
+      {!hasAnswered && onUsePowerUp && (
+        <div className="z-10 max-w-lg w-full mx-auto my-2 bg-slate-900/90 border border-slate-800 rounded-2xl p-2.5 backdrop-blur-md flex items-center justify-around gap-2">
+          {/* 50/50 */}
+          <button
+            type="button"
+            disabled={powerUps.fiftyFifty <= 0 || activePowerUp !== null || (question.type !== 'single' && question.type !== 'multiple')}
+            onClick={() => onUsePowerUp('fifty_fifty')}
+            className={`flex-1 py-1.5 px-2 rounded-xl flex items-center justify-center gap-1.5 text-xs font-bold transition cursor-pointer ${
+              activePowerUp === 'fifty_fifty'
+                ? 'bg-amber-500 text-slate-950 ring-2 ring-amber-400'
+                : powerUps.fiftyFifty > 0 && (question.type === 'single' || question.type === 'multiple')
+                ? 'bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/30'
+                : 'bg-slate-950/60 text-slate-600 border border-slate-900 cursor-not-allowed opacity-40'
+            }`}
+            title="50:50 — Убирает 2 неверных ответа"
+          >
+            <Scissors className="w-3.5 h-3.5" />
+            <span>50/50</span>
+            <span className="text-[10px] font-mono bg-slate-950/60 text-white px-1.5 py-0.2 rounded-full">
+              {powerUps.fiftyFifty}
+            </span>
+          </button>
+
+          {/* 2x Double Points */}
+          <button
+            type="button"
+            disabled={powerUps.doublePoints <= 0 || activePowerUp !== null}
+            onClick={() => onUsePowerUp('double_points')}
+            className={`flex-1 py-1.5 px-2 rounded-xl flex items-center justify-center gap-1.5 text-xs font-bold transition cursor-pointer ${
+              activePowerUp === 'double_points'
+                ? 'bg-purple-500 text-white ring-2 ring-purple-400 animate-pulse'
+                : powerUps.doublePoints > 0
+                ? 'bg-slate-800 hover:bg-slate-700 text-purple-300 border border-purple-500/30'
+                : 'bg-slate-950/60 text-slate-600 border border-slate-900 cursor-not-allowed opacity-40'
+            }`}
+            title="2x Баллы — Удваивает очки за этот вопрос"
+          >
+            <Zap className="w-3.5 h-3.5" />
+            <span>2x Очки</span>
+            <span className="text-[10px] font-mono bg-slate-950/60 text-white px-1.5 py-0.2 rounded-full">
+              {powerUps.doublePoints}
+            </span>
+          </button>
+
+          {/* Shield */}
+          <button
+            type="button"
+            disabled={powerUps.shield <= 0 || activePowerUp !== null}
+            onClick={() => onUsePowerUp('shield')}
+            className={`flex-1 py-1.5 px-2 rounded-xl flex items-center justify-center gap-1.5 text-xs font-bold transition cursor-pointer ${
+              activePowerUp === 'shield'
+                ? 'bg-cyan-500 text-slate-950 ring-2 ring-cyan-400'
+                : powerUps.shield > 0
+                ? 'bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-cyan-500/30'
+                : 'bg-slate-950/60 text-slate-600 border border-slate-900 cursor-not-allowed opacity-40'
+            }`}
+            title="Щит — Сохраняет стрик при ошибке"
+          >
+            <Shield className="w-3.5 h-3.5" />
+            <span>Щит</span>
+            <span className="text-[10px] font-mono bg-slate-950/60 text-white px-1.5 py-0.2 rounded-full">
+              {powerUps.shield}
+            </span>
+          </button>
+        </div>
+      )}
 
       {/* Answer Area */}
       <div className="my-auto max-w-lg w-full mx-auto flex-1 flex flex-col justify-center py-4 z-10">
@@ -134,16 +219,22 @@ export function PlayerAnswerScreen({
             {(question.type === 'single' || question.type === 'poll') && (
               <div className="grid grid-cols-2 gap-3.5 h-full min-h-[300px]">
                 {question.options.map((opt, idx) => {
+                  const isRemoved = removedOptionIds.includes(opt.id);
                   const btn = SHAPE_BUTTONS[idx % SHAPE_BUTTONS.length];
                   return (
                     <button
                       key={opt.id}
+                      disabled={isRemoved}
                       onClick={() => handleSingleClick(opt.id)}
-                      className={`rounded-3xl border-2 p-6 flex flex-col items-center justify-center gap-2 transition-transform active:scale-95 shadow-xl cursor-pointer ${btn.color}`}
+                      className={`rounded-3xl border-2 p-6 flex flex-col items-center justify-center gap-2 transition-transform active:scale-95 shadow-xl cursor-pointer ${
+                        isRemoved
+                          ? 'opacity-20 bg-slate-900 border-slate-800 text-slate-600 cursor-not-allowed pointer-events-none'
+                          : btn.color
+                      }`}
                     >
-                      <span className="text-4xl md:text-5xl font-black">{btn.symbol}</span>
+                      <span className="text-4xl md:text-5xl font-black">{isRemoved ? '✕' : btn.symbol}</span>
                       <span className="text-xs md:text-sm font-bold text-center line-clamp-2">
-                        {opt.text}
+                        {isRemoved ? 'Исключено 50/50' : opt.text}
                       </span>
                     </button>
                   );
@@ -183,21 +274,25 @@ export function PlayerAnswerScreen({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {question.options.map((opt, idx) => {
                     const isChecked = selectedMulti.includes(opt.id);
+                    const isRemoved = removedOptionIds.includes(opt.id);
                     const btn = SHAPE_BUTTONS[idx % SHAPE_BUTTONS.length];
                     return (
                       <button
                         key={opt.id}
                         type="button"
+                        disabled={isRemoved}
                         onClick={() => handleToggleMulti(opt.id)}
                         className={`rounded-2xl border-2 p-4 flex items-center justify-between gap-3 text-left transition cursor-pointer ${
-                          isChecked
+                          isRemoved
+                            ? 'opacity-25 bg-slate-950 border-slate-900 text-slate-600 pointer-events-none'
+                            : isChecked
                             ? 'bg-purple-950/60 border-purple-500 ring-2 ring-purple-500/40 text-white'
                             : 'bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-700'
                         }`}
                       >
                         <div className="flex items-center gap-3">
-                          <span className="font-bold text-base">{btn.symbol}</span>
-                          <span className="text-sm font-semibold">{opt.text}</span>
+                          <span className="font-bold text-base">{isRemoved ? '✕' : btn.symbol}</span>
+                          <span className="text-sm font-semibold">{isRemoved ? 'Исключено 50/50' : opt.text}</span>
                         </div>
                         <div
                           className={`w-6 h-6 rounded-lg border flex items-center justify-center ${
@@ -290,6 +385,32 @@ export function PlayerAnswerScreen({
                 >
                   <Send className="w-4 h-4" />
                   <span>Отправить ответ</span>
+                </button>
+              </form>
+            )}
+
+            {/* TYPE 6: Number Input */}
+            {question.type === 'number' && (
+              <form onSubmit={handleConfirmNumber} className="space-y-4">
+                <div className="text-xs text-blue-400 font-semibold text-center">
+                  Введите числовое значение:
+                </div>
+                <input
+                  type="number"
+                  step="any"
+                  value={numberInput}
+                  onChange={(e) => setNumberInput(e.target.value)}
+                  placeholder="Например: 1961"
+                  className="w-full bg-slate-900 border border-blue-500/50 rounded-2xl px-4 py-3.5 text-center text-2xl font-mono font-bold text-white placeholder:text-slate-600 focus:outline-none focus:border-blue-400"
+                  autoFocus
+                />
+                <button
+                  type="submit"
+                  disabled={!numberInput.trim()}
+                  className="w-full py-3.5 rounded-2xl bg-slate-100 hover:bg-white text-slate-950 font-bold text-sm transition flex items-center justify-center gap-2 shadow-xl disabled:opacity-40 cursor-pointer"
+                >
+                  <Send className="w-4 h-4" />
+                  <span>Отправить число</span>
                 </button>
               </form>
             )}

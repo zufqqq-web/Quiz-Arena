@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { Player } from '../../types';
-import { Trophy, Flame, ArrowRight, Zap } from 'lucide-react';
+import { Trophy, Flame, ArrowRight, ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react';
 import { sounds } from '../../utils/sound';
 
 interface HostLeaderboardProps {
@@ -20,8 +20,21 @@ export function HostLeaderboard({
 }: HostLeaderboardProps) {
   const isLastQuestion = currentQuestionIndex >= totalQuestions - 1;
 
-  // Sort players by score descending
+  // Sort players by current score
   const sortedPlayers = Object.values(players).sort((a, b) => b.score - a.score);
+
+  // Compute previous scores to show rank movements
+  const previousSorted = Object.values(players).sort((a, b) => {
+    const aPrev = a.score - (a.answers?.[currentQuestionIndex]?.pointsEarned || 0);
+    const bPrev = b.score - (b.answers?.[currentQuestionIndex]?.pointsEarned || 0);
+    return bPrev - aPrev;
+  });
+
+  const getRankDelta = (playerId: string, currentRank: number) => {
+    const prevRank = previousSorted.findIndex((p) => p.id === playerId);
+    if (prevRank === -1) return 0;
+    return prevRank - currentRank; // positive means climbed up (e.g. was 4th, now 2nd: 3 - 1 = +2)
+  };
 
   useEffect(() => {
     sounds.playCorrect();
@@ -67,6 +80,8 @@ export function HostLeaderboard({
 
           const recentAnswer = player.answers?.[currentQuestionIndex];
           const gainedPoints = recentAnswer?.pointsEarned || 0;
+          const rankDelta = getRankDelta(player.id, rank);
+          const streakMultiplier = recentAnswer?.streakMultiplier || (player.streak >= 8 ? 1.5 : player.streak >= 5 ? 1.25 : player.streak >= 3 ? 1.1 : 1.0);
 
           return (
             <div
@@ -105,15 +120,38 @@ export function HostLeaderboard({
                     {player.streak >= 2 && (
                       <span className="flex items-center gap-1 text-[11px] font-bold text-orange-400 bg-orange-950/70 border border-orange-800/60 px-2 py-0.5 rounded-full animate-pulse">
                         <Flame className="w-3 h-3 fill-orange-400" />
-                        <span>x{player.streak}</span>
+                        <span>x{player.streak} {streakMultiplier > 1.0 && `(×${streakMultiplier})`}</span>
                       </span>
                     )}
                   </div>
-                  {gainedPoints > 0 && (
-                    <div className="text-[11px] text-emerald-400 font-medium">
-                      +{gainedPoints} за этот вопрос
-                    </div>
-                  )}
+                  <div className="flex items-center gap-2 mt-0.5">
+                    {gainedPoints > 0 ? (
+                      <span className="text-[11px] text-emerald-400 font-medium font-mono">
+                        +{gainedPoints} за этот вопрос
+                      </span>
+                    ) : (
+                      <span className="text-[11px] text-slate-500 font-medium">
+                        +0 за этот вопрос
+                      </span>
+                    )}
+
+                    {/* Rank Delta indicator */}
+                    {rankDelta > 0 ? (
+                      <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-emerald-400 bg-emerald-950/60 px-1.5 py-0.5 rounded">
+                        <ArrowUpRight className="w-3 h-3" />
+                        <span>↑{rankDelta}</span>
+                      </span>
+                    ) : rankDelta < 0 ? (
+                      <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-red-400 bg-red-950/60 px-1.5 py-0.5 rounded">
+                        <ArrowDownRight className="w-3 h-3" />
+                        <span>↓{Math.abs(rankDelta)}</span>
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center text-[10px] text-slate-500">
+                        <Minus className="w-3 h-3" />
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
 
