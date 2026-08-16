@@ -7,6 +7,7 @@ import { QuestionCanvas } from './QuestionCanvas';
 import { QuestionSettings } from './QuestionSettings';
 import { QuizMetaModal } from './QuizMetaModal';
 import { AITemplateModal } from './AITemplateModal';
+import { AIChatWidget } from './AIChatWidget';
 import { Play, Settings, Sparkles, ArrowLeft, Save, Download, AlertCircle, LayoutGrid, Sliders, Edit3 } from 'lucide-react';
 import { sounds } from '../../utils/sound';
 
@@ -335,6 +336,12 @@ export function QuizEditor({ quizId, onBack, onLaunchQuiz }: QuizEditorProps) {
       <AITemplateModal
         isOpen={isTemplateModalOpen}
         onClose={() => setIsTemplateModalOpen(false)}
+        onApplyQuestions={handleApplyTemplates}
+      />
+
+      {/* AI Bot Assistant Chat Widget (Bottom Right) */}
+      <AIChatWidget
+        quizTitle={quiz.title}
         onApplyQuestions={handleApplyTemplates}
       />
     </div>
