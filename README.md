@@ -1,158 +1,237 @@
-<div align="center">
-  
-  # React + Vite Application
-  
-  A modern React application built with Vite, TypeScript, and TailwindCSS.
-  
-  [![TypeScript](https://img.shields.io/badge/TypeScript-5.8-blue)](https://www.typescriptlang.org/)
-  [![React](https://img.shields.io/badge/React-19.0-61dafb)](https://react.dev/)
-  [![Vite](https://img.shields.io/badge/Vite-6.2-646cff)](https://vitejs.dev/)
-  [![TailwindCSS](https://img.shields.io/badge/TailwindCSS-4.1-38bdf8)](https://tailwindcss.com/)
-  
-</div>
+# QuizCraft — Интерактивная Платформа для Викторин
+
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.8-blue?logo=typescript)](https://www.typescriptlang.org/)
+[![React](https://img.shields.io/badge/React-19.0-61dafb?logo=react)](https://react.dev/)
+[![Vite](https://img.shields.io/badge/Vite-6.2-ff6b6b?logo=vite)](https://vitejs.dev/)
+[![TailwindCSS](https://img.shields.io/badge/TailwindCSS-4.1-38bdf8?logo=tailwindcss)](https://tailwindcss.com/)
+
+**QuizCraft** — это современное веб-приложение для создания и проведения интерактивных викторин в стиле Kahoot. Запускайте квизы прямо в браузере, приглашайте игроков по PIN-коду, добавляйте ботов для атмосферы и наслаждайтесь игровой механикой с очками, стриками и подиумом победителей.
 
 ---
 
-## 📖 About
+## ✨ Возможности
 
-This project is a React-based web application using modern tooling including:
+### 🎮 Для Ведущего (Host)
+- **Создание комнаты** с уникальным PIN-кодом
+- **Лобби игроков** с отображением всех подключившихся участников
+- **Управление игрой**: запуск таймера, показ вопросов, раскрытие ответов
+- **Таблица лидеров** после каждого вопроса
+- **Финальный подиум** с конфетти для победителей
+- **Аналитика** по результатам игры
+- **Боты-игроки** — добавьте 4 умных бота для заполнения комнаты
+- **Эмодзи-реакции** от игроков в реальном времени
+- **Фоновая музыка** в лобби
 
-- **Vite** - Fast build tool and dev server
-- **React 19** - Latest version of the UI library
-- **TypeScript** - Type-safe JavaScript
-- **TailwindCSS 4** - Utility-first CSS framework
-- **Motion** - Animation library
-- **Lucide React** - Beautiful icons
+### 📱 Для Игрока (Player)
+- **Вход по PIN-коду** комнаты
+- **Выбор ника и аватара** (эмодзи)
+- **Ответы на вопросы** с таймером
+- **Мгновенный результат** после каждого вопроса
+- **Подсчет очков** с учетом скорости и серии правильных ответов
+- **Стрики** — бонусы за серию правильных ответов
 
-## 🚀 Quick Start
+### 🛠️ Конструктор Квизов (Builder)
+- **6 типов вопросов**:
+  - Одиночный выбор (`single`)
+  - Множественный выбор (`multiple`)
+  - Правда/Ложь (`boolean`)
+  - Текстовый ответ (`text`)
+  - Упорядочивание (`order`)
+  - Опрос без правильных ответов (`poll`)
+- **Настройки вопроса**:
+  - Лимит времени (5–60 секунд)
+  - Множитель очков (0x, 1x, 2x)
+  - Изображения (через URL)
+  - Объяснение правильного ответа
+- **Редактирование метаданных**: название, описание, категория, обложка-эмодзи
+- **Автосохранение** в localStorage
+- **Готовые шаблоны** квизов (IT, Наука, Развлечения)
 
-### Prerequisites
+### 🔧 Технические Особенности
+- **Синхронизация между вкладками** через BroadcastChannel + localStorage events
+- **Локальное хранилище** — все данные сохраняются в браузере
+- **Звуковые эффекты** для событий игры (клики, правильные/неправильные ответы, музыка)
+- **Адаптивный дизайн** на TailwindCSS
+- **TypeScript** для типобезопасности
+- **Модульная архитектура** компонентов
 
-Make sure you have the following installed:
+---
 
-- **Node.js** (v18 or higher recommended)
-- **npm** or **bun** (package manager)
+## 🚀 Быстрый Старт
 
-### Installation
+### Требования
+- Node.js >= 18
+- npm или yarn
 
-1. **Clone the repository** (if needed):
-   ```bash
-   git clone <repository-url>
-   cd <project-directory>
-   ```
+### Установка
 
-2. **Install dependencies**:
-   ```bash
-   npm install
-   # or using bun
-   bun install
-   ```
-
-3. **Configure environment variables**:
-   
-   Copy the example environment file:
-   ```bash
-   cp .env.example .env.local
-   ```
-   
-   Edit `.env.local` and add your configuration:
-   ```env
-   APP_URL="http://localhost:3000"
-   ```
-
-4. **Start the development server**:
-   ```bash
-   npm run dev
-   ```
-   
-   The app will be available at `http://localhost:3000`
-
-## 📜 Available Scripts
-
-| Command | Description |
-|---------|-------------|
-| `npm run dev` | Start development server with hot reload |
-| `npm run build` | Build production bundle |
-| `npm run preview` | Preview production build locally |
-| `npm run lint` | Run TypeScript type checking |
-| `npm run clean` | Remove build artifacts (`dist/`, `server.js`) |
-
-## 🏗️ Project Structure
-
-```
-├── src/
-│   ├── components/    # Reusable React components
-│   ├── data/          # Static data and configurations
-│   ├── utils/         # Utility functions
-│   ├── App.tsx        # Main application component
-│   ├── main.tsx       # Application entry point
-│   └── types.ts       # TypeScript type definitions
-├── .env.example       # Environment variables template
-├── index.html         # HTML entry point
-├── package.json       # Dependencies and scripts
-├── tsconfig.json      # TypeScript configuration
-└── vite.config.ts     # Vite configuration
-```
-
-## 🔧 Configuration
-
-### Environment Variables
-
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `APP_URL` | Application URL | ❌ No |
-
-## 🛠️ Tech Stack
-
-- **Frontend Framework**: React 19
-- **Build Tool**: Vite 6
-- **Language**: TypeScript 5.8
-- **Styling**: TailwindCSS 4
-- **Animations**: Motion (formerly Framer Motion)
-- **Icons**: Lucide React
-- **Server**: Express (for API routes)
-
-## 📦 Deployment
-
-### Manual Deployment
-
-1. Build the production bundle:
-   ```bash
-   npm run build
-   ```
-
-2. The output will be in the `dist/` directory
-
-3. Deploy `dist/` to your preferred hosting platform
-
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## 📄 License
-
-This project is private and proprietary.
-
-## 🆘 Troubleshooting
-
-### Common Issues
-
-**Port already in use:**
 ```bash
-# Kill process on port 3000
-lsof -ti:3000 | xargs kill -9
-```
+# Клонируйте репозиторий
+git clone <ваш-репозиторий>
+cd <папка-проекта>
 
-**Build failures:**
-```bash
-# Clean and reinstall
-npm run clean
-rm -rf node_modules package-lock.json
+# Установите зависимости
 npm install
+
+# Запустите сервер разработки
+npm run dev
+```
+
+Приложение откроется по адресу `http://localhost:3000`
+
+---
+
+## 📜 Скрипты
+
+| Команда | Описание |
+|---------|----------|
+| `npm run dev` | Запуск сервера разработки (порт 3000) |
+| `npm run build` | Сборка продакшн-версии в папку `dist` |
+| `npm run preview` | Предпросмотр собранной версии |
+| `npm run clean` | Очистка артефактов сборки |
+| `npm run lint` | Проверка типов TypeScript |
+
+---
+
+## 🏗️ Структура Проекта
+
+```
+src/
+├── App.tsx                 # Главный компонент с роутингом по видам
+├── main.tsx                # Точка входа
+├── types.ts                # TypeScript типы и интерфейсы
+├── components/
+│   ├── Library/            # Библиотека квизов
+│   │   └── QuizLibrary.tsx
+│   ├── Builder/            # Редактор квизов
+│   │   ├── QuizEditor.tsx
+│   │   ├── QuestionCanvas.tsx
+│   │   ├── QuestionSettings.tsx
+│   │   ├── QuestionSlideList.tsx
+│   │   ├── QuizMetaModal.tsx
+│   │   └── AITemplateModal.tsx
+│   ├── Host/               # Интерфейс ведущего
+│   │   ├── HostView.tsx
+│   │   ├── HostLobby.tsx
+│   │   ├── HostQuestionActive.tsx
+│   │   ├── HostQuestionReveal.tsx
+│   │   ├── HostLeaderboard.tsx
+│   │   ├── HostPodium.tsx
+│   │   └── HostAnalytics.tsx
+│   ├── Player/             # Интерфейс игрока
+│   │   ├── PlayerView.tsx
+│   │   ├── PlayerJoin.tsx
+│   │   ├── PlayerWaitingLobby.tsx
+│   │   ├── PlayerAnswerScreen.tsx
+│   │   ├── PlayerAnswerResult.tsx
+│   │   └── PlayerPodiumResult.tsx
+│   └── Common/             # Общие компоненты
+│       └── ReactionsStream.tsx
+├── data/
+│   └── defaultQuizzes.ts   # Шаблоны готовых квизов
+└── utils/
+    ├── storage.ts          # Работа с localStorage
+    ├── syncBus.ts          # Синхронизация между вкладками
+    ├── botSimulator.ts     # Генерация и логика ботов
+    └── sound.ts            # Звуковые эффекты
 ```
 
 ---
 
-<div align="center">
-  Made with ❤️ using React and Vite
-</div>
+## 🎯 Как Это Работает
+
+### Архитектура Синхронизации
+Приложение использует **BroadcastChannel API** вместе с **localStorage events** для синхронизации состояния между:
+- Вкладкой ведущего (Host)
+- Вкладками игроков (Players)
+
+Все события (подключение игрока, отправка ответа, смена вопроса) передаются через единую шину `syncBus`.
+
+### Формула Подсчета Очков
+Очки рассчитываются по формуле Kahoot:
+```
+Points = round((1 - (timeSpent / timeLimit) / 2) * 1000 * multiplier) + streakBonus
+```
+
+**Бонус за стрик**:
+- 2 правильных подряд: +50
+- 3 правильных подряд: +100
+- 4+ правильных подряд: +200
+
+### Боты
+Боты имитируют поведение реальных игроков:
+- Разная скорость ответа (fast/average/slow)
+- Разная точность (65%–95%)
+- Автоматический выбор ответов на основе типа вопроса
+
+---
+
+## 🎨 Готовые Квизы
+
+В приложении уже есть 3 шаблона:
+
+1. **IT, Код и Цифровой Мир** 💻
+   - Вопросы про JavaScript, алгоритмы, API
+   - Все типы вопросов включены
+
+2. **Научные Парадоксы и Космос** 🚀
+   - Физика, астрономия, химия
+   - Вопросы на упорядочивание планет
+
+3. **Пятничный Квиз: Кино, Мемы & Логика** 🍿
+   - Вопросы про фильмы, музыку
+   - Опросы для разминки
+
+---
+
+## 🔐 Безопасность и Приватность
+
+- Все данные хранятся **локально в браузере** (localStorage)
+- Нет серверной части — полная приватность
+- PIN-коды генерируются случайно для каждой сессии
+- Никакие персональные данные не отправляются наружу
+
+---
+
+## 🛠️ Технологии
+
+- **React 19** — UI библиотека
+- **TypeScript 5.8** — типизация
+- **Vite 6.2** — сборщик и dev-сервер
+- **TailwindCSS 4.1** — стилизация
+- **Lucide React** — иконки
+- **Motion** — анимации
+- **canvas-confetti** — эффект конфетти на подиуме
+- **BroadcastChannel API** — межтабличная синхронизация
+
+---
+
+## 🤝 Вклад в Проект
+
+1. Fork репозиторий
+2. Создайте ветку (`git checkout -b feature/AmazingFeature`)
+3. Закоммитьте изменения (`git commit -m 'Add some AmazingFeature'`)
+4. Push в ветку (`git push origin feature/AmazingFeature`)
+5. Откройте Pull Request
+
+---
+
+## 📄 Лицензия
+
+Этот проект распространяется под лицензией MIT. Подробности в файле LICENSE.
+
+---
+
+## 🙏 Благодарности
+
+- Вдохновлено платформой **Kahoot!**
+- Иконки от [Lucide](https://lucide.dev/)
+- Шрифты и стили — современные веб-стандарты
+
+---
+
+## 📞 Контакты
+
+Если у вас возникли вопросы или предложения — создайте Issue в репозитории.
+
+**Приятной игры! 🎮**
