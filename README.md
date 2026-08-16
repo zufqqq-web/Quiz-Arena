@@ -1,3 +1,4 @@
+ improved-readme-for-the-project-08443
 <div align="center">
   
   # React + Vite Application
@@ -156,3 +157,4 @@ npm install
 <div align="center">
   Made with ❤️ using React and Vite
 </div>
+ 

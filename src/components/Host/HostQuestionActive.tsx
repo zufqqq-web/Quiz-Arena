@@ -191,6 +191,12 @@ export function HostQuestionActive({
             <span className="text-pink-400 font-semibold">Игроки вводят точный текстовый ответ на своих экранах...</span>
           </div>
         )}
+
+        {question.type === 'number' && (
+          <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 text-center text-sm text-slate-300">
+            <span className="text-blue-400 font-semibold">Игроки вводят числовое значение на своих экранах...</span>
+          </div>
+        )}
       </div>
     </div>
   );

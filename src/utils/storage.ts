@@ -172,12 +172,25 @@ export const storage = {
     if (type === 'text') {
       return {
         id,
-        title: 'Введите точный ответ (слово или число):',
+        title: 'Введите точный ответ (текст):',
         type: 'text',
         timeLimit: 25,
         pointsMultiplier: 1,
         correctTextAnswer: 'Ответ',
         explanation: 'Пояснение к точному ответу.',
+        options: [],
+      };
+    }
+    if (type === 'number') {
+      return {
+        id,
+        title: 'Укажите числовой ответ:',
+        type: 'number',
+        timeLimit: 20,
+        pointsMultiplier: 1,
+        correctNumberAnswer: 42,
+        numberTolerance: 0,
+        explanation: 'Точный ответ или допустимый диапазон.',
         options: [],
       };
     }
