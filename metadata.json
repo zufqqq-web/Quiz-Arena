@@ -1,0 +1,6 @@
+{
+  "name": "QuizCraft - Конструктор и Квиз-Арена",
+  "description": "Минималистичный интерактивный конструктор квизов и комната для реального мультиплеера с таймерами, звуками, стриками и аналитикой",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
